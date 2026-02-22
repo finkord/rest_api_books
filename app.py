@@ -41,7 +41,7 @@ def get_book(book_id):
     book = books.get(book_id)
     if book:
         return jsonify(book), 200
-    return jsonify({"error": "404, Book not found"}), 404
+    return jsonify({"error": "Book not found"}), 404
 
 @app.route('/books', methods=['POST'])
 def create_book():
@@ -49,15 +49,33 @@ def create_book():
     global next_id
     data = request.get_json()
     
-    if not data or not 'title' in data or not 'author' in data:
-        return jsonify({"error": "Title and author are required"}), 400
+    # Validation
+    if not data:
+        return jsonify({"error": "Request must be JSON"}), 400
+    
+    if 'title' not in data or not str(data['title']).strip():
+        return jsonify({"error": "Title is required and cannot be empty"}), 422
+        
+    if 'author' not in data or not str(data['author']).strip():
+        return jsonify({"error": "Author is required and cannot be empty"}), 422
+        
+    if 'year' in data:
+        try:
+            year = int(data['year'])
+            if year < 0 or year > 2100:
+                return jsonify({"error": "Year must be between 0 and 2100"}), 422
+        except ValueError:
+            return jsonify({"error": "Year must be an integer"}), 422
+            
+    if 'description' in data and len(str(data['description'])) > 1000:
+        return jsonify({"error": "Description is too long (max 1000 chars)"}), 422
         
     new_book = {
         "id": next_id,
-        "title": data['title'],
-        "author": data['author'],
-        "description": data.get('description', ''),
-        "year": data.get('year')
+        "title": str(data['title']).strip(),
+        "author": str(data['author']).strip(),
+        "description": str(data.get('description', '')).strip(),
+        "year": int(data['year']) if 'year' in data else None
     }
     
     books[next_id] = new_book
@@ -70,16 +88,36 @@ def update_book(book_id):
     """Update an existing book (Update)"""
     book = books.get(book_id)
     if not book:
-        return jsonify({"error": "404, Book not found"}), 404
+        return jsonify({"error": "Book not found"}), 404
         
     data = request.get_json()
     if not data:
-        return jsonify({"error": "400, No data provided"}), 400
+        return jsonify({"error": "No data provided"}), 400
         
-    book['title'] = data.get('title', book['title'])
-    book['author'] = data.get('author', book['author'])
-    book['description'] = data.get('description', book['description'])
-    book['year'] = data.get('year', book['year'])
+    # Validation logic for updates
+    if 'title' in data and not str(data['title']).strip():
+        return jsonify({"error": "Title cannot be empty"}), 422
+        
+    if 'author' in data and not str(data['author']).strip():
+        return jsonify({"error": "Author cannot be empty"}), 422
+        
+    if 'year' in data:
+        try:
+            year = int(data['year'])
+            if year < 0 or year > 2100:
+                return jsonify({"error": "Year must be between 0 and 2100"}), 422
+        except ValueError:
+            return jsonify({"error": "Year must be an integer"}), 422
+            
+    if 'description' in data and len(str(data['description'])) > 1000:
+        return jsonify({"error": "Description is too long (max 1000 chars)"}), 422
+        
+    book['title'] = str(data['title']).strip() if 'title' in data else book['title']
+    book['author'] = str(data['author']).strip() if 'author' in data else book['author']
+    book['description'] = str(data['description']).strip() if 'description' in data else book['description']
+    
+    if 'year' in data:
+        book['year'] = int(data['year'])
     
     return jsonify(book), 200
 
@@ -88,8 +126,8 @@ def delete_book(book_id):
     """Delete a book (Delete)"""
     if book_id in books:
         del books[book_id]
-        return jsonify({"message": "200, Book deleted successfully"}), 200
-    return jsonify({"error": "404, Book not found"}), 404
+        return '', 204 # HTTP 204 No Content is best practice for successful deletion without return body
+    return jsonify({"error": "Book not found"}), 404
 
 if __name__ == '__main__':
     app.run()
