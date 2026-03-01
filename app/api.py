@@ -1,4 +1,3 @@
-import uuid
 from typing import List
 from fastapi import APIRouter, Depends, Query
 from motor.motor_asyncio import AsyncIOMotorDatabase

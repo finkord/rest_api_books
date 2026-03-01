@@ -1,4 +1,3 @@
-import uuid
 from typing import List, Optional
 from pydantic_mongo import AsyncAbstractRepository
 from motor.motor_asyncio import AsyncIOMotorDatabase
