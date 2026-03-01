@@ -1,9 +1,9 @@
 import uuid
 from typing import List
 from fastapi import HTTPException
-from models import Book
-from schemas import BookRequest
-from repository import Repository
+from app.models import Book
+from app.schemas import BookRequest
+from app.repository import Repository
 
 
 class BookService:

@@ -1,10 +1,10 @@
 import uuid
 from typing import List
 from fastapi import APIRouter
-from models import db
-from schemas import BookRequest, BookResponse
-from services import BookService
-from repository import Repository
+from app.models import db
+from app.schemas import BookRequest, BookResponse
+from app.services import BookService
+from app.repository import Repository
 
 router = APIRouter(prefix="/api", tags=["Books"])
 service = BookService(repository=Repository(db))

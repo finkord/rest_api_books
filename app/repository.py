@@ -1,6 +1,6 @@
 import uuid
 from typing import List, Optional
-from models import Book
+from app.models import Book
 
 
 class Repository:

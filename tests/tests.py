@@ -1,7 +1,7 @@
 import pytest
 from fastapi.testclient import TestClient
-from main import app
-from models import db, Book
+from app.main import app
+from app.models import db, Book
 import uuid
 
 client = TestClient(app)
