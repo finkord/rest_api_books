@@ -8,7 +8,7 @@ services:
     ports:
       - "8000:8000"
     depends_on:
-      - postgres
+      - mongodb
     env_file:
       - .env
     volumes:
@@ -16,14 +16,17 @@ services:
     networks:
       - books_network
 
-  postgres:
-    image: postgres:16
+  mongodb:
+    image: mongo:4.2.3-bionic
     restart: unless-stopped
+    ports:
+      - 27017:27017
     env_file:
       - .env
     volumes:
-      - ./data/psql:/var/lib/postgresql/data
-      - ./configs/psql/:/docker-entrypoint-initdb.d
+      - ./mongo-entrypoint:/docker-entrypoint-initdb.d
+      - ./data/mongo:/data/db
+      - ./configs/mongoconfig:/data/configdb
     networks:
       - books_network
 
