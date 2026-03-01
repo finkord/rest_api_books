@@ -1,4 +1,3 @@
-import uuid
 from typing import List
 from fastapi import HTTPException
 from app.models import Book
@@ -13,7 +12,7 @@ class BookService:
     async def get_books(self, limit: int = 10, offset: int = 0) -> List[Book]:
         return await self.repository.get_all(limit=limit, offset=offset)
 
-    async def get_book(self, book_id: uuid.UUID) -> Book:
+    async def get_book(self, book_id: str) -> Book:
         book = await self.repository.get_by_id(book_id)
         if not book:
             raise HTTPException(status_code=404, detail="Book not found")
@@ -29,7 +28,7 @@ class BookService:
         )
         return await self.repository.create(book)
 
-    async def delete_book(self, book_id: uuid.UUID) -> dict:
+    async def delete_book(self, book_id: str) -> dict:
         deleted = await self.repository.delete(book_id)
         if not deleted:
             raise HTTPException(status_code=404, detail="Book not found")

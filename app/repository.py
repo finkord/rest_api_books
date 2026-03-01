@@ -1,32 +1,28 @@
 import uuid
 from typing import List, Optional
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.future import select
+from pydantic_mongo import AsyncAbstractRepository
+from motor.motor_asyncio import AsyncIOMotorDatabase
 from app.models import Book
 
+class Repository(AsyncAbstractRepository[Book]):
+    class Meta:
+        collection_name = "books"
 
-class Repository:
-    def __init__(self, session: AsyncSession):
-        self.session = session
+    def __init__(self, database: AsyncIOMotorDatabase):
+        super().__init__(database)
 
     async def get_all(self, limit: int = 10, offset: int = 0) -> List[Book]:
-        result = await self.session.execute(select(Book).offset(offset).limit(limit))
-        return list(result.scalars().all())
+        cursor = self.get_collection().find({}).skip(offset).limit(limit)
+        docs = await cursor.to_list(length=limit)
+        return [self.to_model(doc) for doc in docs]
 
-    async def get_by_id(self, book_id: uuid.UUID) -> Optional[Book]:
-        result = await self.session.execute(select(Book).where(Book.id == book_id))
-        return result.scalars().first()
+    async def get_by_id(self, book_id: str) -> Optional[Book]:
+        return await self.find_one_by_id(book_id)
 
     async def create(self, book: Book) -> Book:
-        self.session.add(book)
-        await self.session.commit()
-        await self.session.refresh(book)
+        await self.save(book)
         return book
 
-    async def delete(self, book_id: uuid.UUID) -> bool:
-        book = await self.get_by_id(book_id)
-        if book:
-            await self.session.delete(book)
-            await self.session.commit()
-            return True
-        return False
+    async def delete(self, book_id: str) -> bool:
+        result = await self.get_collection().delete_one({"_id": book_id})
+        return result.deleted_count > 0

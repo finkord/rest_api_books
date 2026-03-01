@@ -3,18 +3,12 @@ import uvicorn
 from fastapi import FastAPI
 
 from app.api import router
-from app.models import engine, Base
-
+from app.database import client
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Initialize database
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
     yield
-    # Dispose connection pool on shutdown
-    await engine.dispose()
-
+    client.close()
 
 app = FastAPI(lifespan=lifespan)
 
