@@ -10,8 +10,8 @@ class BookService:
     def __init__(self, repository: Repository):
         self.repository = repository
 
-    async def get_books(self) -> List[Book]:
-        return await self.repository.get_all()
+    async def get_books(self, limit: int = 10, offset: int = 0) -> List[Book]:
+        return await self.repository.get_all(limit=limit, offset=offset)
 
     async def get_book(self, book_id: uuid.UUID) -> Book:
         book = await self.repository.get_by_id(book_id)

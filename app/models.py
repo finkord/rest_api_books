@@ -1,23 +1,23 @@
-from dataclasses import dataclass, field
+import os
 import uuid
+from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+from sqlalchemy import String, Integer
 
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite+aiosqlite:///./test.db")
 
-@dataclass
-class Book:
-    title: str
-    author: str
-    description: str
-    status: str
-    year_published: int
-    id: uuid.UUID = field(default_factory=uuid.uuid4)
+engine = create_async_engine(DATABASE_URL, echo=True)
+async_session = async_sessionmaker(engine, expire_on_commit=False)
 
+class Base(DeclarativeBase):
+    pass
 
-db = [
-    Book(
-        title="1984",
-        author="George Orwell",
-        description="A dystopian novel",
-        status="available",
-        year_published=1949,
-    )
-]
+class Book(Base):
+    __tablename__ = "books"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    title: Mapped[str] = mapped_column(String(100), nullable=False)
+    author: Mapped[str] = mapped_column(String(100), nullable=False)
+    description: Mapped[str] = mapped_column(String(400), nullable=False)
+    status: Mapped[str] = mapped_column(String(40), nullable=False)
+    year_published: Mapped[int] = mapped_column(Integer, nullable=False)
