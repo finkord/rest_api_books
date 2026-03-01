@@ -4,6 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from app.models import Book
 
+
 class Repository:
     def __init__(self, session: AsyncSession):
         self.session = session

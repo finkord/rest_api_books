@@ -5,6 +5,7 @@ from fastapi import FastAPI
 from app.api import router
 from app.models import engine, Base
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Initialize database
@@ -13,6 +14,7 @@ async def lifespan(app: FastAPI):
     yield
     # Dispose connection pool on shutdown
     await engine.dispose()
+
 
 app = FastAPI(lifespan=lifespan)
 

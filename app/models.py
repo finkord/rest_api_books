@@ -9,8 +9,10 @@ DATABASE_URL = os.getenv("DATABASE_URL", "sqlite+aiosqlite:///./test.db")
 engine = create_async_engine(DATABASE_URL, echo=True)
 async_session = async_sessionmaker(engine, expire_on_commit=False)
 
+
 class Base(DeclarativeBase):
     pass
+
 
 class Book(Base):
     __tablename__ = "books"
