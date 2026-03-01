@@ -9,12 +9,14 @@ class Repository:
     def __init__(self, session: AsyncSession):
         self.session = session
 
-    async def get_all(self, limit: int = 10, cursor: Optional[uuid.UUID] = None) -> List[Book]:
+    async def get_all(
+        self, limit: int = 10, cursor: Optional[uuid.UUID] = None
+    ) -> List[Book]:
         stmt = select(Book).order_by(Book.id).limit(limit)
-        
+
         if cursor:
             stmt = stmt.where(Book.id > cursor)
-            
+
         result = await self.session.execute(stmt)
         return list(result.scalars().all())
 

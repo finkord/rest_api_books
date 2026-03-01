@@ -23,13 +23,17 @@ async def get_service(db: AsyncSession = Depends(get_db)):
 async def health():
     return {"status": "ok"}
 
+
 @router.get("/books", response_model=List[BookResponse])
 async def get_books(
     limit: int = Query(10, ge=1, le=100),
-    cursor: Optional[uuid.UUID] = Query(None, description="ID of the last book from the previous page"),
+    cursor: Optional[uuid.UUID] = Query(
+        None, description="ID of the last book from the previous page"
+    ),
     service: BookService = Depends(get_service),
 ):
     return await service.get_books(limit=limit, cursor=cursor)
+
 
 @router.get("/books/{book_id}", response_model=BookResponse)
 async def get_book(book_id: uuid.UUID, service: BookService = Depends(get_service)):

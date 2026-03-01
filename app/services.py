@@ -18,8 +18,10 @@ class BookService:
         if not book:
             raise HTTPException(status_code=404, detail="Book not found")
         return book
-    
-    async def get_books(self, limit: int = 10, cursor: Optional[uuid.UUID] = None) -> List[Book]:
+
+    async def get_books(
+        self, limit: int = 10, cursor: Optional[uuid.UUID] = None
+    ) -> List[Book]:
         return await self.repository.get_all(limit=limit, cursor=cursor)
 
     async def create_book(self, book_request: BookRequest) -> Book:

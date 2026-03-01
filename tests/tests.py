@@ -176,16 +176,19 @@ def test_get_books_pagination(client):
     }
     client.post("/api/books", json=new_book)
 
-    # First page: limit 1, offset 0
-    response1 = client.get("/api/books?limit=1&offset=0")
+    # First page: limit 1, no cursor
+    response1 = client.get("/api/books?limit=1")
     assert response1.status_code == 200
     data1 = response1.json()
     assert len(data1) == 1
-    assert data1[0]["title"] == "1984"  # According to reset fixture
 
-    # Second page: limit 1, offset 1
-    response2 = client.get("/api/books?limit=1&offset=1")
+    first_book_id = data1[0]["id"]
+
+    # Second page: limit 1, use cursor from the first page
+    response2 = client.get(f"/api/books?limit=1&cursor={first_book_id}")
     assert response2.status_code == 200
     data2 = response2.json()
     assert len(data2) == 1
-    assert data2[0]["title"] == "Brave New World"
+
+    # Ensure the second page returns a different book
+    assert data2[0]["id"] != first_book_id
