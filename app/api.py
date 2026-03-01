@@ -1,5 +1,5 @@
 import uuid
-from typing import List
+from typing import List, Optional
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.models import async_session
@@ -23,15 +23,13 @@ async def get_service(db: AsyncSession = Depends(get_db)):
 async def health():
     return {"status": "ok"}
 
-
 @router.get("/books", response_model=List[BookResponse])
 async def get_books(
     limit: int = Query(10, ge=1, le=100),
-    offset: int = Query(0, ge=0),
+    cursor: Optional[uuid.UUID] = Query(None, description="ID of the last book from the previous page"),
     service: BookService = Depends(get_service),
 ):
-    return await service.get_books(limit=limit, offset=offset)
-
+    return await service.get_books(limit=limit, cursor=cursor)
 
 @router.get("/books/{book_id}", response_model=BookResponse)
 async def get_book(book_id: uuid.UUID, service: BookService = Depends(get_service)):
