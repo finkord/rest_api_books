@@ -26,11 +26,22 @@ async def health():
 
 @router.get("/books", response_model=List[BookResponse])
 async def get_books(
+    status: str | None = Query(None, description="Filter by status"),
+    author: str | None = Query(None, description="Filter by author"),
+    sort_by: str | None = Query(None, description="Sort by 'title' or 'year_published'"),
+    sort_order: str = Query("asc", description="Sort order: 'asc' or 'desc'"),
     limit: int = Query(10, ge=1, le=100),
     offset: int = Query(0, ge=0),
     service: BookService = Depends(get_service),
 ):
-    return await service.get_books(limit=limit, offset=offset)
+    return await service.get_books(
+        status=status,
+        author=author,
+        sort_by=sort_by,
+        sort_order=sort_order,
+        limit=limit,
+        offset=offset
+    )
 
 
 @router.get("/books/{book_id}", response_model=BookResponse)

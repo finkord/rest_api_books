@@ -10,8 +10,23 @@ class BookService:
     def __init__(self, repository: Repository):
         self.repository = repository
 
-    async def get_books(self, limit: int = 10, offset: int = 0) -> List[Book]:
-        return await self.repository.get_all(limit=limit, offset=offset)
+    async def get_books(
+        self,
+        status: str | None = None,
+        author: str | None = None,
+        sort_by: str | None = None,
+        sort_order: str = "asc",
+        limit: int = 10,
+        offset: int = 0
+    ) -> List[Book]:
+        return await self.repository.get_all(
+            status=status,
+            author=author,
+            sort_by=sort_by,
+            sort_order=sort_order,
+            limit=limit,
+            offset=offset
+        )
 
     async def get_book(self, book_id: uuid.UUID) -> Book:
         book = await self.repository.get_by_id(book_id)
