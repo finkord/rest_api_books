@@ -189,3 +189,90 @@ def test_get_books_pagination(client):
     data2 = response2.json()
     assert len(data2) == 1
     assert data2[0]["title"] == "Brave New World"
+
+
+def test_get_books_filter_by_status(client):
+    new_book = {
+        "title": "Brave New World",
+        "author": "Aldous Huxley",
+        "description": "Another dystopian novel",
+        "status": "borrowed",
+        "year_published": 1932,
+    }
+    client.post("/api/books", json=new_book)
+
+    response = client.get("/api/books?status=borrowed")
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) == 1
+    assert data[0]["status"] == "borrowed"
+    
+    response_avail = client.get("/api/books?status=available")
+    assert response_avail.status_code == 200
+    assert len(response_avail.json()) == 1
+
+
+def test_get_books_filter_by_author(client):
+    response = client.get("/api/books?author=George+Orwell")
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) == 1
+    assert data[0]["author"] == "George Orwell"
+
+    response_empty = client.get("/api/books?author=Unknown")
+    assert response_empty.status_code == 200
+    assert len(response_empty.json()) == 0
+
+
+def test_get_books_sort_by_title_asc(client):
+    new_book = {
+        "title": "Animal Farm",
+        "author": "George Orwell",
+        "description": "Another dystopian novel",
+        "status": "available",
+        "year_published": 1945,
+    }
+    client.post("/api/books", json=new_book)
+
+    response = client.get("/api/books?sort_by=title&sort_order=asc")
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) == 2
+    assert data[0]["title"] == "1984" # '1' comes before 'A' in ascii
+    assert data[1]["title"] == "Animal Farm"
+
+
+def test_get_books_sort_by_title_desc(client):
+    new_book = {
+        "title": "Animal Farm",
+        "author": "George Orwell",
+        "description": "Another dystopian novel",
+        "status": "available",
+        "year_published": 1945,
+    }
+    client.post("/api/books", json=new_book)
+
+    response = client.get("/api/books?sort_by=title&sort_order=desc")
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) == 2
+    assert data[0]["title"] == "Animal Farm"
+    assert data[1]["title"] == "1984"
+
+
+def test_get_books_sort_by_year_published(client):
+    new_book = {
+        "title": "Animal Farm",
+        "author": "George Orwell",
+        "description": "Another dystopian novel",
+        "status": "available",
+        "year_published": 1945,
+    }
+    client.post("/api/books", json=new_book)
+
+    response = client.get("/api/books?sort_by=year_published&sort_order=desc")
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) == 2
+    assert data[0]["year_published"] == 1949 # 1984 was published in 1949
+    assert data[1]["year_published"] == 1945
