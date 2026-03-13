@@ -18,8 +18,8 @@ class BookService:
         sort_order: str = "asc",
         limit: int = 10,
         offset: int = 0
-    ) -> List[Book]:
-        return await self.repository.get_all(
+    ) -> dict:
+        items, total = await self.repository.get_all(
             status=status,
             author=author,
             sort_by=sort_by,
@@ -27,6 +27,35 @@ class BookService:
             limit=limit,
             offset=offset
         )
+        
+        # Build base URL to append query parameters easily
+        base_url = "/api/books"
+        params = []
+        if status: params.append(f"status={status}")
+        if author: params.append(f"author={author}")
+        if sort_by: params.append(f"sort_by={sort_by}")
+        params.append(f"sort_order={sort_order}")
+        
+        base_query = "&".join(params)
+        base_query = f"?{base_query}&" if base_query else "?"
+
+        next_page = None
+        if offset + limit < total:
+            next_page = f"{base_url}{base_query}limit={limit}&offset={offset + limit}"
+
+        prev_page = None
+        if offset > 0:
+            prev_offset = max(0, offset - limit)
+            prev_page = f"{base_url}{base_query}limit={limit}&offset={prev_offset}"
+            
+        return {
+            "items": items,
+            "total": total,
+            "limit": limit,
+            "offset": offset,
+            "next_page": next_page,
+            "prev_page": prev_page
+        }
 
     async def get_book(self, book_id: uuid.UUID) -> Book:
         book = await self.repository.get_by_id(book_id)

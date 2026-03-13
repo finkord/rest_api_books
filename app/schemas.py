@@ -51,3 +51,12 @@ class BookResponse(BaseModel):
     description: str
     status: str
     year_published: int
+
+
+class PaginatedBookResponse(BaseModel):
+    items: list[BookResponse]
+    total: int
+    limit: int
+    offset: int
+    next_page: str | None = None
+    prev_page: str | None = None

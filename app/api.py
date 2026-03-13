@@ -3,7 +3,7 @@ from typing import List
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.models import async_session
-from app.schemas import BookRequest, BookResponse
+from app.schemas import BookRequest, BookResponse, PaginatedBookResponse
 from app.services import BookService
 from app.repository import Repository
 
@@ -24,7 +24,7 @@ async def health():
     return {"status": "ok"}
 
 
-@router.get("/books", response_model=List[BookResponse])
+@router.get("/books", response_model=PaginatedBookResponse)
 async def get_books(
     status: str | None = Query(None, description="Filter by status"),
     author: str | None = Query(None, description="Filter by author"),
