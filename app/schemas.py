@@ -9,8 +9,8 @@ from enum import Enum
 
 class BookStatus(str, Enum):
     """Allowed states for a book's availability."""
-    AVAILABLE = "available"
-    BORROWED = "borrowed"
+    available = "available"
+    borrowed = "borrowed"
 
 
 class BookRequest(BaseModel):

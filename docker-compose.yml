@@ -3,7 +3,7 @@ services:
 
   app:
     build: .
-    image: finkord/books-api:lab3-a_3c4cc6a
+    image: finkord/books-api:lab3-a_c1ec8b4
     restart: unless-stopped
     ports:
       - "8000:8000"
@@ -26,7 +26,7 @@ services:
       - ./data/psql:/var/lib/postgresql/data
       - ./configs/psql/:/docker-entrypoint-initdb.d
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U admin -d booksdb"]
+      test: [ "CMD-SHELL", "pg_isready -U admin -d booksdb" ]
       interval: 5s
       timeout: 5s
       retries: 5
