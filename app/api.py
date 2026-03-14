@@ -3,16 +3,11 @@ from flask import request
 from flask_restful import Resource
 from pydantic import ValidationError
 
-from app.models import SessionLocal, Book
+from app.models import Book
 from app.schemas import BookRequest, BookResponse, PaginatedBookResponse
 from app.services import BookService
 from app.repository import Repository
-
-
-def _get_service():
-    """Create a BookService with a fresh database session."""
-    session = SessionLocal()
-    return BookService(repository=Repository(session)), session
+from app.db import get_db
 
 
 def _book_to_dict(book: Book) -> dict:
@@ -117,33 +112,31 @@ class BookListResource(Resource):
                   type: string
                   x-nullable: true
         """
-        service, session = _get_service()
-        try:
-            status = request.args.get("status")
-            author = request.args.get("author")
-            sort_by = request.args.get("sort_by")
-            sort_order = request.args.get("sort_order", "asc")
-            limit = request.args.get("limit", 10, type=int)
-            offset = request.args.get("offset", 0, type=int)
+        service = BookService(repository=Repository(get_db()))
 
-            # Clamp limit and offset
-            limit = max(1, min(limit, 100))
-            offset = max(0, offset)
+        status = request.args.get("status")
+        author = request.args.get("author")
+        sort_by = request.args.get("sort_by")
+        sort_order = request.args.get("sort_order", "asc")
+        limit = request.args.get("limit", 10, type=int)
+        offset = request.args.get("offset", 0, type=int)
 
-            result = service.get_books(
-                status=status,
-                author=author,
-                sort_by=sort_by,
-                sort_order=sort_order,
-                limit=limit,
-                offset=offset,
-            )
+        # Clamp limit and offset
+        limit = max(1, min(limit, 100))
+        offset = max(0, offset)
 
-            # Serialize Book model instances inside items
-            result["items"] = [_book_to_dict(book) for book in result["items"]]
-            return result, 200
-        finally:
-            session.close()
+        result = service.get_books(
+            status=status,
+            author=author,
+            sort_by=sort_by,
+            sort_order=sort_order,
+            limit=limit,
+            offset=offset,
+        )
+
+        # Serialize Book model instances inside items
+        result["items"] = [_book_to_dict(book) for book in result["items"]]
+        return result, 200
 
     def post(self):
         """
@@ -165,24 +158,22 @@ class BookListResource(Resource):
           422:
             description: Validation error
         """
-        service, session = _get_service()
-        try:
-            data = request.get_json(force=True)
-            try:
-                book_request = BookRequest(**data)
-            except ValidationError as e:
-                # Pydantic v2 ctx may contain non-serializable objects;
-                # extract only JSON-safe fields from each error.
-                errors = [
-                    {"loc": err["loc"], "msg": err["msg"], "type": err["type"]}
-                    for err in e.errors()
-                ]
-                return {"errors": errors}, 422
+        service = BookService(repository=Repository(get_db()))
 
-            book = service.create_book(book_request)
-            return _book_to_dict(book), 201
-        finally:
-            session.close()
+        data = request.get_json(force=True)
+        try:
+            book_request = BookRequest(**data)
+        except ValidationError as e:
+            # Pydantic v2 ctx may contain non-serializable objects;
+            # extract only JSON-safe fields from each error.
+            errors = [
+                {"loc": err["loc"], "msg": err["msg"], "type": err["type"]}
+                for err in e.errors()
+            ]
+            return {"errors": errors}, 422
+
+        book = service.create_book(book_request)
+        return _book_to_dict(book), 201
 
 
 class BookResource(Resource):
@@ -207,15 +198,13 @@ class BookResource(Resource):
           404:
             description: Book not found
         """
-        service, session = _get_service()
+        service = BookService(repository=Repository(get_db()))
         try:
             book_uuid = uuid.UUID(book_id)
-            book = service.get_book(book_uuid)
-            return _book_to_dict(book), 200
         except ValueError:
             return {"message": "Invalid book ID format"}, 400
-        finally:
-            session.close()
+        book = service.get_book(book_uuid)
+        return _book_to_dict(book), 200
 
     def delete(self, book_id):
         """
@@ -236,12 +225,10 @@ class BookResource(Resource):
           404:
             description: Book not found
         """
-        service, session = _get_service()
+        service = BookService(repository=Repository(get_db()))
         try:
             book_uuid = uuid.UUID(book_id)
-            result = service.delete_book(book_uuid)
-            return result, 200
         except ValueError:
             return {"message": "Invalid book ID format"}, 400
-        finally:
-            session.close()
+        result = service.delete_book(book_uuid)
+        return result, 200

@@ -4,7 +4,8 @@ from flasgger import Swagger
 from werkzeug.exceptions import HTTPException
 
 from app.api import HealthResource, BookListResource, BookResource
-from app.models import engine, Base
+from app.db import teardown_db
+from app.exceptions import NotFoundError
 
 # Swagger/Flasgger configuration
 SWAGGER_TEMPLATE = {
@@ -93,6 +94,9 @@ api.add_resource(HealthResource, "/api/health")
 api.add_resource(BookListResource, "/api/books")
 api.add_resource(BookResource, "/api/books/<string:book_id>")
 
+# Manage the SQLAlchemy session lifecycle per request
+app.teardown_appcontext(teardown_db)
+
 
 @app.route("/")
 def root():
@@ -106,13 +110,10 @@ def handle_http_exception(exc):
     return {"message": exc.description}, exc.code
 
 
-def create_tables():
-    """Create all database tables if they do not exist."""
-    Base.metadata.create_all(bind=engine)
-
-
-# Initialize database tables on import
-create_tables()
+@app.errorhandler(NotFoundError)
+def handle_not_found(exc):
+    """Return a 404 JSON response for NotFoundError exceptions."""
+    return {"message": exc.message}, 404
 
 
 if __name__ == "__main__":

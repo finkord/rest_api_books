@@ -1,8 +1,9 @@
 import uuid
-from flask import abort
+from urllib.parse import urlencode
 from app.models import Book
 from app.schemas import BookRequest
 from app.repository import Repository
+from app.exceptions import NotFoundError
 
 
 class BookService:
@@ -27,25 +28,27 @@ class BookService:
             offset=offset
         )
 
-        # Build base URL to append query parameters easily
-        base_url = "/api/books"
-        params = []
-        if status: params.append(f"status={status}")
-        if author: params.append(f"author={author}")
-        if sort_by: params.append(f"sort_by={sort_by}")
-        params.append(f"sort_order={sort_order}")
+        # Collect non-pagination filter params
+        filter_params: dict = {}
+        if status:
+            filter_params["status"] = status
+        if author:
+            filter_params["author"] = author
+        if sort_by:
+            filter_params["sort_by"] = sort_by
+        filter_params["sort_order"] = sort_order
 
-        base_query = "&".join(params)
-        base_query = f"?{base_query}&" if base_query else "?"
+        def _build_url(lim: int, off: int) -> str:
+            params = {**filter_params, "limit": lim, "offset": off}
+            return f"/api/books?{urlencode(params)}"
 
         next_page = None
         if offset + limit < total:
-            next_page = f"{base_url}{base_query}limit={limit}&offset={offset + limit}"
+            next_page = _build_url(limit, offset + limit)
 
         prev_page = None
         if offset > 0:
-            prev_offset = max(0, offset - limit)
-            prev_page = f"{base_url}{base_query}limit={limit}&offset={prev_offset}"
+            prev_page = _build_url(limit, max(0, offset - limit))
 
         return {
             "items": items,
@@ -59,7 +62,7 @@ class BookService:
     def get_book(self, book_id: uuid.UUID) -> Book:
         book = self.repository.get_by_id(book_id)
         if not book:
-            abort(404, description="Book not found")
+            raise NotFoundError("Book not found")
         return book
 
     def create_book(self, book_request: BookRequest) -> Book:
@@ -75,5 +78,5 @@ class BookService:
     def delete_book(self, book_id: uuid.UUID) -> dict:
         deleted = self.repository.delete(book_id)
         if not deleted:
-            abort(404, description="Book not found")
+            raise NotFoundError("Book not found")
         return {"message": "Book deleted"}

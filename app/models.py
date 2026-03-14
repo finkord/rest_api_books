@@ -4,8 +4,9 @@ from sqlalchemy import create_engine, String, Integer
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, sessionmaker
 
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./test.db")
+DB_ECHO = os.getenv("DB_ECHO", "false").lower() == "true"
 
-engine = create_engine(DATABASE_URL, echo=True)
+engine = create_engine(DATABASE_URL, echo=DB_ECHO)
 SessionLocal = sessionmaker(bind=engine, expire_on_commit=False)
 
 

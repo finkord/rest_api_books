@@ -1,24 +1,40 @@
 import os
+
+# Must be set BEFORE importing app modules so models.py picks up the override
+os.environ["DATABASE_URL"] = "sqlite:///:memory:"
+os.environ["DB_ECHO"] = "false"
+
 import pytest
 import uuid
 
-os.environ["DATABASE_URL"] = "sqlite:///./test.db"
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+
+# Monkey-patch app.models to use in-memory SQLite before loading app.main
+import app.models as _models
+
+_engine = create_engine(
+    "sqlite:///:memory:",
+    connect_args={"check_same_thread": False},
+)
+_SessionLocal = sessionmaker(bind=_engine, expire_on_commit=False)
+_models.engine = _engine
+_models.SessionLocal = _SessionLocal
 
 from app.main import app
-from app.models import Base, engine, SessionLocal, Book
+from app.models import Base, Book
 
 
 @pytest.fixture(scope="session", autouse=True)
 def setup_database():
-    Base.metadata.drop_all(bind=engine)
-    Base.metadata.create_all(bind=engine)
+    Base.metadata.create_all(bind=_engine)
     yield
-    Base.metadata.drop_all(bind=engine)
+    Base.metadata.drop_all(bind=_engine)
 
 
 @pytest.fixture(autouse=True)
 def reset_db_data():
-    session = SessionLocal()
+    session = _SessionLocal()
     try:
         session.query(Book).delete()
         session.commit()
