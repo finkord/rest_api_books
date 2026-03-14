@@ -14,6 +14,6 @@ RUN uv pip install --system --no-cache -r /code/requirements
 # Copy the rest of the application code
 COPY ./app /code/app
 
-# Command to run the application using the FastAPI CLI or Uvicorn directly
+# Command to run the application using Flask
 # Use the exec form of CMD for proper signal handling
-CMD ["fastapi", "run", "app/main.py"]
+CMD ["python", "-m", "app.main"]

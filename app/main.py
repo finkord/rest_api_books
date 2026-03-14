@@ -1,29 +1,119 @@
-from contextlib import asynccontextmanager
-import uvicorn
-from fastapi import FastAPI
-from fastapi.responses import RedirectResponse
+from flask import Flask, redirect
+from flask_restful import Api
+from flasgger import Swagger
+from werkzeug.exceptions import HTTPException
 
-from app.api import router
+from app.api import HealthResource, BookListResource, BookResource
 from app.models import engine, Base
 
+# Swagger/Flasgger configuration
+SWAGGER_TEMPLATE = {
+    "swagger": "2.0",
+    "info": {
+        "title": "Books REST API",
+        "description": "A REST API for managing a book collection",
+        "version": "1.0.0",
+    },
+    "basePath": "/",
+    "definitions": {
+        "BookRequest": {
+            "type": "object",
+            "required": ["title", "author", "description", "status", "year_published"],
+            "properties": {
+                "title": {
+                    "type": "string",
+                    "minLength": 2,
+                    "maxLength": 100,
+                    "example": "1984",
+                },
+                "author": {
+                    "type": "string",
+                    "minLength": 2,
+                    "maxLength": 100,
+                    "example": "George Orwell",
+                },
+                "description": {
+                    "type": "string",
+                    "minLength": 2,
+                    "maxLength": 400,
+                    "example": "A dystopian novel",
+                },
+                "status": {
+                    "type": "string",
+                    "enum": ["available", "borrowed"],
+                    "example": "available",
+                },
+                "year_published": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "example": 1949,
+                },
+            },
+        },
+        "BookResponse": {
+            "type": "object",
+            "properties": {
+                "id": {"type": "string", "format": "uuid"},
+                "title": {"type": "string"},
+                "author": {"type": "string"},
+                "description": {"type": "string"},
+                "status": {"type": "string"},
+                "year_published": {"type": "integer"},
+            },
+        },
+    },
+}
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    # Initialize database
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-    yield
-    # Dispose connection pool on shutdown
-    await engine.dispose()
+SWAGGER_CONFIG = {
+    "headers": [],
+    "specs": [
+        {
+            "endpoint": "apispec",
+            "route": "/apispec.json",
+            "rule_filter": lambda rule: True,
+            "model_filter": lambda tag: True,
+        }
+    ],
+    "static_url_path": "/flasgger_static",
+    "swagger_ui": True,
+    "specs_route": "/apidocs/",
+}
+
+# Create Flask application
+app = Flask(__name__)
+
+# Initialize Flask-RESTful API
+api = Api(app)
+
+# Initialize Flasgger (Swagger UI)
+swagger = Swagger(app, template=SWAGGER_TEMPLATE, config=SWAGGER_CONFIG)
+
+# Register resource routes
+api.add_resource(HealthResource, "/api/health")
+api.add_resource(BookListResource, "/api/books")
+api.add_resource(BookResource, "/api/books/<string:book_id>")
 
 
-app = FastAPI(lifespan=lifespan)
-
-app.include_router(router)
-
-@app.get("/", include_in_schema=False)
+@app.route("/")
 def root():
-    return RedirectResponse(url="/docs")
+    """Redirect root URL to Swagger UI."""
+    return redirect("/apidocs/")
+
+
+@app.errorhandler(HTTPException)
+def handle_http_exception(exc):
+    """Return JSON responses for HTTP errors instead of HTML."""
+    return {"message": exc.description}, exc.code
+
+
+def create_tables():
+    """Create all database tables if they do not exist."""
+    Base.metadata.create_all(bind=engine)
+
+
+# Initialize database tables on import
+create_tables()
+
 
 if __name__ == "__main__":
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+    app.run(host="0.0.0.0", port=8000, debug=True)

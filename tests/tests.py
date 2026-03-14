@@ -1,87 +1,76 @@
 import os
 import pytest
 import uuid
-import asyncio
-from fastapi.testclient import TestClient
-from sqlalchemy import text
 
-os.environ["DATABASE_URL"] = "sqlite+aiosqlite:///./test.db"
+os.environ["DATABASE_URL"] = "sqlite:///./test.db"
 
 from app.main import app
-from app.models import Base, engine, async_session, Book
+from app.models import Base, engine, SessionLocal, Book
 
 
 @pytest.fixture(scope="session", autouse=True)
 def setup_database():
-    async def init_db():
-        async with engine.begin() as conn:
-            await conn.run_sync(Base.metadata.drop_all)
-            await conn.run_sync(Base.metadata.create_all)
-
-    asyncio.run(init_db())
+    Base.metadata.drop_all(bind=engine)
+    Base.metadata.create_all(bind=engine)
     yield
-
-    async def cleanup_db():
-        async with engine.begin() as conn:
-            await conn.run_sync(Base.metadata.drop_all)
-
-    asyncio.run(cleanup_db())
+    Base.metadata.drop_all(bind=engine)
 
 
 @pytest.fixture(autouse=True)
 def reset_db_data():
-    async def reset():
-        async with async_session() as session:
-            await session.execute(text("DELETE FROM books"))
-            await session.commit()
+    session = SessionLocal()
+    try:
+        session.query(Book).delete()
+        session.commit()
 
-            book = Book(
-                title="1984",
-                author="George Orwell",
-                description="A dystopian novel",
-                status="available",
-                year_published=1949,
-            )
-            session.add(book)
-            await session.commit()
-
-    asyncio.run(reset())
+        book = Book(
+            title="1984",
+            author="George Orwell",
+            description="A dystopian novel",
+            status="available",
+            year_published=1949,
+        )
+        session.add(book)
+        session.commit()
+    finally:
+        session.close()
 
 
 @pytest.fixture
 def client():
-    with TestClient(app) as c:
+    app.config["TESTING"] = True
+    with app.test_client() as c:
         yield c
 
 
 def test_health(client):
     response = client.get("/api/health")
     assert response.status_code == 200
-    assert response.json() == {"status": "ok"}
+    assert response.get_json() == {"status": "ok"}
 
 
 def test_get_books(client):
     response = client.get("/api/books")
     assert response.status_code == 200
-    data = response.json()["items"]
+    data = response.get_json()["items"]
     assert len(data) == 1
     assert data[0]["title"] == "1984"
 
 
 def test_get_book(client):
     books_response = client.get("/api/books")
-    book_id = books_response.json()["items"][0]["id"]
+    book_id = books_response.get_json()["items"][0]["id"]
 
     response = client.get(f"/api/books/{book_id}")
     assert response.status_code == 200
-    assert response.json()["title"] == "1984"
+    assert response.get_json()["title"] == "1984"
 
 
 def test_get_book_not_found(client):
     random_id = str(uuid.uuid4())
     response = client.get(f"/api/books/{random_id}")
     assert response.status_code == 404
-    assert response.json()["detail"] == "Book not found"
+    assert response.get_json()["message"] == "Book not found"
 
 
 def test_create_book(client):
@@ -94,7 +83,7 @@ def test_create_book(client):
     }
     response = client.post("/api/books", json=new_book)
     assert response.status_code == 201
-    data = response.json()
+    data = response.get_json()
     assert "id" in data
     assert data["title"] == new_book["title"]
 
@@ -113,7 +102,7 @@ def test_create_book_invalid_title(client):
 
 def test_delete_book(client):
     books_response = client.get("/api/books")
-    book_id = books_response.json()["items"][0]["id"]
+    book_id = books_response.get_json()["items"][0]["id"]
 
     response = client.delete(f"/api/books/{book_id}")
     assert response.status_code == 200
@@ -162,7 +151,7 @@ def test_delete_book_not_found(client):
     random_id = str(uuid.uuid4())
     response = client.delete(f"/api/books/{random_id}")
     assert response.status_code == 404
-    assert response.json()["detail"] == "Book not found"
+    assert response.get_json()["message"] == "Book not found"
 
 
 def test_get_books_pagination(client):
@@ -179,16 +168,16 @@ def test_get_books_pagination(client):
     # First page: limit 1, offset 0
     response1 = client.get("/api/books?limit=1&offset=0")
     assert response1.status_code == 200
-    data1 = response1.json()
+    data1 = response1.get_json()
     assert len(data1["items"]) == 1
-    assert data1["items"][0]["title"] == "1984"  # According to reset fixture
+    assert data1["items"][0]["title"] == "1984"
     assert data1["total"] == 2
     assert data1["next_page"] is not None
 
     # Second page: limit 1, offset 1
     response2 = client.get("/api/books?limit=1&offset=1")
     assert response2.status_code == 200
-    data2 = response2.json()
+    data2 = response2.get_json()
     assert len(data2["items"]) == 1
     assert data2["items"][0]["title"] == "Brave New World"
     assert data2["prev_page"] is not None
@@ -206,25 +195,25 @@ def test_get_books_filter_by_status(client):
 
     response = client.get("/api/books?status=borrowed")
     assert response.status_code == 200
-    data = response.json()
+    data = response.get_json()
     assert len(data["items"]) == 1
     assert data["items"][0]["status"] == "borrowed"
-    
+
     response_avail = client.get("/api/books?status=available")
     assert response_avail.status_code == 200
-    assert len(response_avail.json()["items"]) == 1
+    assert len(response_avail.get_json()["items"]) == 1
 
 
 def test_get_books_filter_by_author(client):
     response = client.get("/api/books?author=George+Orwell")
     assert response.status_code == 200
-    data = response.json()
+    data = response.get_json()
     assert len(data["items"]) == 1
     assert data["items"][0]["author"] == "George Orwell"
 
     response_empty = client.get("/api/books?author=Unknown")
     assert response_empty.status_code == 200
-    assert len(response_empty.json()["items"]) == 0
+    assert len(response_empty.get_json()["items"]) == 0
 
 
 def test_get_books_sort_by_title_asc(client):
@@ -239,9 +228,9 @@ def test_get_books_sort_by_title_asc(client):
 
     response = client.get("/api/books?sort_by=title&sort_order=asc")
     assert response.status_code == 200
-    data = response.json()
+    data = response.get_json()
     assert len(data["items"]) == 2
-    assert data["items"][0]["title"] == "1984" # '1' comes before 'A' in ascii
+    assert data["items"][0]["title"] == "1984"
     assert data["items"][1]["title"] == "Animal Farm"
 
 
@@ -257,7 +246,7 @@ def test_get_books_sort_by_title_desc(client):
 
     response = client.get("/api/books?sort_by=title&sort_order=desc")
     assert response.status_code == 200
-    data = response.json()
+    data = response.get_json()
     assert len(data["items"]) == 2
     assert data["items"][0]["title"] == "Animal Farm"
     assert data["items"][1]["title"] == "1984"
@@ -275,7 +264,7 @@ def test_get_books_sort_by_year_published(client):
 
     response = client.get("/api/books?sort_by=year_published&sort_order=desc")
     assert response.status_code == 200
-    data = response.json()
+    data = response.get_json()
     assert len(data["items"]) == 2
-    assert data["items"][0]["year_published"] == 1949 # 1984 was published in 1949
+    assert data["items"][0]["year_published"] == 1949
     assert data["items"][1]["year_published"] == 1945
