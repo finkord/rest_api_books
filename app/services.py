@@ -1,9 +1,10 @@
 import uuid
+import urllib.parse
 from typing import List
-from fastapi import HTTPException
 from app.models import Book
 from app.schemas import BookRequest
 from app.repository import Repository
+from app.exceptions import NotFoundError
 
 
 class BookService:
@@ -30,23 +31,23 @@ class BookService:
         
         # Build base URL to append query parameters easily
         base_url = "/api/books"
-        params = []
-        if status: params.append(f"status={status}")
-        if author: params.append(f"author={author}")
-        if sort_by: params.append(f"sort_by={sort_by}")
-        params.append(f"sort_order={sort_order}")
         
-        base_query = "&".join(params)
-        base_query = f"?{base_query}&" if base_query else "?"
-
+        base_params = {}
+        if status: base_params["status"] = status
+        if author: base_params["author"] = author
+        if sort_by: base_params["sort_by"] = sort_by
+        base_params["sort_order"] = sort_order
+        
         next_page = None
         if offset + limit < total:
-            next_page = f"{base_url}{base_query}limit={limit}&offset={offset + limit}"
+            next_params = {**base_params, "limit": limit, "offset": offset + limit}
+            next_page = f"{base_url}?{urllib.parse.urlencode(next_params)}"
 
         prev_page = None
         if offset > 0:
             prev_offset = max(0, offset - limit)
-            prev_page = f"{base_url}{base_query}limit={limit}&offset={prev_offset}"
+            prev_params = {**base_params, "limit": limit, "offset": prev_offset}
+            prev_page = f"{base_url}?{urllib.parse.urlencode(prev_params)}"
             
         return {
             "items": items,
@@ -60,7 +61,7 @@ class BookService:
     async def get_book(self, book_id: uuid.UUID) -> Book:
         book = await self.repository.get_by_id(book_id)
         if not book:
-            raise HTTPException(status_code=404, detail="Book not found")
+            raise NotFoundError("Book not found")
         return book
 
     async def create_book(self, book_request: BookRequest) -> Book:
@@ -76,5 +77,5 @@ class BookService:
     async def delete_book(self, book_id: uuid.UUID) -> dict:
         deleted = await self.repository.delete(book_id)
         if not deleted:
-            raise HTTPException(status_code=404, detail="Book not found")
+            raise NotFoundError("Book not found")
         return {"message": "Book deleted"}

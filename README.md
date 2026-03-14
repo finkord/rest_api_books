@@ -50,3 +50,11 @@ Tests are written using `pytest` and use an isolated local SQLite database to pr
 ```bash
 uv run pytest tests/tests.py
 ```
+
+### Seed Users
+
+If u need create test users use this script or swagger ui
+
+```bash
+docker exec -it rest_api_cnu-app-1 env PYTHONPATH=. python app/seed_users.py
+```

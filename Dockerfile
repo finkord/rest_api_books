@@ -11,8 +11,11 @@ COPY ./requirements /code/requirements
 # Note: --system is required because uv refuses to install into the system Python by default
 RUN uv pip install --system --no-cache -r /code/requirements
 
-# Copy the rest of the application code
+# Copy the application code and migration files
 COPY ./app /code/app
+COPY ./alembic /code/alembic
+COPY ./alembic.ini /code/alembic.ini
+COPY ./pyproject.toml /code/pyproject.toml
 
 # Command to run the application using the FastAPI CLI or Uvicorn directly
 # Use the exec form of CMD for proper signal handling

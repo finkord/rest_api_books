@@ -2,10 +2,11 @@ import uuid
 from typing import List, Literal
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.models import async_session
+from app.models import async_session, User
 from app.schemas import BookRequest, BookResponse, PaginatedBookResponse
 from app.services import BookService
 from app.repository import Repository
+from app.security import get_current_user
 
 router = APIRouter(prefix="/api", tags=["Books"])
 
@@ -33,6 +34,7 @@ async def get_books(
     limit: int = Query(10, ge=1, le=100),
     offset: int = Query(0, ge=0),
     service: BookService = Depends(get_service),
+    current_user: User = Depends(get_current_user),
 ):
     return await service.get_books(
         status=status,
@@ -45,15 +47,15 @@ async def get_books(
 
 
 @router.get("/books/{book_id}", response_model=BookResponse)
-async def get_book(book_id: uuid.UUID, service: BookService = Depends(get_service)):
+async def get_book(book_id: uuid.UUID, service: BookService = Depends(get_service), current_user: User = Depends(get_current_user)):
     return await service.get_book(book_id)
 
 
 @router.post("/books", status_code=201, response_model=BookResponse)
-async def create_book(book: BookRequest, service: BookService = Depends(get_service)):
+async def create_book(book: BookRequest, service: BookService = Depends(get_service), current_user: User = Depends(get_current_user)):
     return await service.create_book(book)
 
 
 @router.delete("/books/{book_id}")
-async def delete_book(book_id: uuid.UUID, service: BookService = Depends(get_service)):
+async def delete_book(book_id: uuid.UUID, service: BookService = Depends(get_service), current_user: User = Depends(get_current_user)):
     return await service.delete_book(book_id)

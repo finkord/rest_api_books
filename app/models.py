@@ -5,8 +5,9 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 from sqlalchemy import String, Integer
 
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite+aiosqlite:///./test.db")
+DB_ECHO = os.getenv("DB_ECHO", "false").lower() == "true"
 
-engine = create_async_engine(DATABASE_URL, echo=True)
+engine = create_async_engine(DATABASE_URL, echo=DB_ECHO)
 async_session = async_sessionmaker(engine, expire_on_commit=False)
 
 
@@ -23,3 +24,11 @@ class Book(Base):
     description: Mapped[str] = mapped_column(String(400), nullable=False)
     status: Mapped[str] = mapped_column(String(40), nullable=False)
     year_published: Mapped[int] = mapped_column(Integer, nullable=False)
+
+
+class User(Base):
+    __tablename__ = "users"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    username: Mapped[str] = mapped_column(String(100), unique=True, index=True, nullable=False)
+    hashed_password: Mapped[str] = mapped_column(String(255), nullable=False)

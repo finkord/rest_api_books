@@ -3,7 +3,7 @@ from typing import List, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy import asc, desc, func
-from app.models import Book
+from app.models import Book, User
 
 
 class Repository:
@@ -32,12 +32,27 @@ class Repository:
         elif sort_by == "year_published":
             order_func = desc(Book.year_published) if sort_order == "desc" else asc(Book.year_published)
             query = query.order_by(order_func)
+        else:
+            query = query.order_by(asc(Book.id))
 
         count_query = select(func.count()).select_from(query.subquery())
         total_result = await self.session.execute(count_query)
         total_count = total_result.scalar_one()
 
-        result = await self.session.execute(query.offset(offset).limit(limit))
+        id_query = query.with_only_columns(Book.id).offset(offset).limit(limit)
+        id_result = await self.session.execute(id_query)
+        book_ids = id_result.scalars().all()
+
+        if not book_ids:
+            return [], total_count
+
+        full_query = select(Book).where(Book.id.in_(book_ids))
+        if sort_by == "title":
+            full_query = full_query.order_by(order_func)
+        elif sort_by == "year_published":
+            full_query = full_query.order_by(order_func)
+            
+        result = await self.session.execute(full_query)
         return list(result.scalars().all()), total_count
 
     async def get_by_id(self, book_id: uuid.UUID) -> Optional[Book]:
@@ -57,3 +72,18 @@ class Repository:
             await self.session.commit()
             return True
         return False
+
+
+class UserRepository:
+    def __init__(self, session: AsyncSession):
+        self.session = session
+
+    async def get_by_username(self, username: str) -> Optional[User]:
+        result = await self.session.execute(select(User).where(User.username == username))
+        return result.scalars().first()
+
+    async def create(self, user: User) -> User:
+        self.session.add(user)
+        await self.session.commit()
+        await self.session.refresh(user)
+        return user
