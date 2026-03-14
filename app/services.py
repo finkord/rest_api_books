@@ -1,10 +1,8 @@
-import uuid
-from typing import List
+from typing import List, Dict, Any
 from fastapi import HTTPException
-from app.models import Book
 from app.schemas import BookRequest
 from app.repository import Repository
-
+from app.utils import build_pagination_links
 
 class BookService:
     def __init__(self, repository: Repository):
@@ -28,25 +26,16 @@ class BookService:
             offset=offset
         )
         
-        # Build base URL to append query parameters easily
-        base_url = "/api/books"
-        params = []
-        if status: params.append(f"status={status}")
-        if author: params.append(f"author={author}")
-        if sort_by: params.append(f"sort_by={sort_by}")
-        params.append(f"sort_order={sort_order}")
-        
-        base_query = "&".join(params)
-        base_query = f"?{base_query}&" if base_query else "?"
-
-        next_page = None
-        if offset + limit < total:
-            next_page = f"{base_url}{base_query}limit={limit}&offset={offset + limit}"
-
-        prev_page = None
-        if offset > 0:
-            prev_offset = max(0, offset - limit)
-            prev_page = f"{base_url}{base_query}limit={limit}&offset={prev_offset}"
+        next_page, prev_page = build_pagination_links(
+            base_url="/api/books",
+            limit=limit,
+            offset=offset,
+            total=total,
+            status=status,
+            author=author,
+            sort_by=sort_by,
+            sort_order=sort_order
+        )
             
         return {
             "items": items,
@@ -57,23 +46,17 @@ class BookService:
             "prev_page": prev_page
         }
 
-    async def get_book(self, book_id: uuid.UUID) -> Book:
+    async def get_book(self, book_id: str) -> Dict[str, Any]:
         book = await self.repository.get_by_id(book_id)
         if not book:
             raise HTTPException(status_code=404, detail="Book not found")
         return book
 
-    async def create_book(self, book_request: BookRequest) -> Book:
-        book = Book(
-            title=book_request.title,
-            author=book_request.author,
-            description=book_request.description,
-            status=book_request.status,
-            year_published=book_request.year_published,
-        )
-        return await self.repository.create(book)
+    async def create_book(self, book_request: BookRequest) -> Dict[str, Any]:
+        book_dict = book_request.model_dump()
+        return await self.repository.create(book_dict)
 
-    async def delete_book(self, book_id: uuid.UUID) -> dict:
+    async def delete_book(self, book_id: str) -> dict:
         deleted = await self.repository.delete(book_id)
         if not deleted:
             raise HTTPException(status_code=404, detail="Book not found")

@@ -50,8 +50,10 @@ push:
 # ----------------------------------------
 compose-up:
 	docker compose -f docker-compose.yml up -d
+	
 compose-down:
 	docker compose -f docker-compose.yml down
+
 compose-up-build:
 	docker compose -f docker-compose.yml up --build -d
 

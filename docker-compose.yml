@@ -16,6 +16,19 @@ services:
     networks:
       - books_network
 
+  mongodb_cnu:
+    image: mongo:latest
+    container_name: mongodb_cnu
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: adminpassword
+    ports:
+      - "27017:27017"
+    volumes:
+      - ./data/mongodb:/data/db
+    networks:
+      - books_network
+
   postgres:
     image: postgres:16
     restart: unless-stopped

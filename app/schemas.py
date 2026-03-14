@@ -1,5 +1,4 @@
 from pydantic import BaseModel, Field, field_validator
-import uuid
 from datetime import datetime
 
 
@@ -45,7 +44,7 @@ class BookRequest(BaseModel):
 
 
 class BookResponse(BaseModel):
-    id: uuid.UUID
+    id: str
     title: str
     author: str
     description: str

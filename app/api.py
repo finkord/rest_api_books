@@ -1,8 +1,5 @@
-import uuid
 from typing import List, Literal
 from fastapi import APIRouter, Depends, Query
-from sqlalchemy.ext.asyncio import AsyncSession
-from app.models import async_session
 from app.schemas import BookRequest, BookResponse, PaginatedBookResponse
 from app.services import BookService
 from app.repository import Repository
@@ -10,13 +7,8 @@ from app.repository import Repository
 router = APIRouter(prefix="/api", tags=["Books"])
 
 
-async def get_db():
-    async with async_session() as session:
-        yield session
-
-
-async def get_service(db: AsyncSession = Depends(get_db)):
-    return BookService(repository=Repository(db))
+async def get_service():
+    return BookService(repository=Repository())
 
 
 @router.get("/health")
@@ -45,7 +37,7 @@ async def get_books(
 
 
 @router.get("/books/{book_id}", response_model=BookResponse)
-async def get_book(book_id: uuid.UUID, service: BookService = Depends(get_service)):
+async def get_book(book_id: str, service: BookService = Depends(get_service)):
     return await service.get_book(book_id)
 
 
@@ -55,5 +47,5 @@ async def create_book(book: BookRequest, service: BookService = Depends(get_serv
 
 
 @router.delete("/books/{book_id}")
-async def delete_book(book_id: uuid.UUID, service: BookService = Depends(get_service)):
+async def delete_book(book_id: str, service: BookService = Depends(get_service)):
     return await service.delete_book(book_id)
