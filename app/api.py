@@ -3,12 +3,13 @@ from fastapi import APIRouter, Depends, Query
 from app.schemas import BookRequest, BookResponse, PaginatedBookResponse, BookQueryParams
 from app.services import BookService
 from app.repository import Repository
+from app.models import books_collection
 
 router = APIRouter(prefix="/api", tags=["Books"])
 
 
 async def get_service():
-    return BookService(repository=Repository())
+    return BookService(repository=Repository(collection=books_collection))
 
 
 @router.get("/health")

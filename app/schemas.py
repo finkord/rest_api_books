@@ -12,7 +12,7 @@ class BookRequest(BaseModel):
     title: str = Field(min_length=2, max_length=100)
     author: str = Field(min_length=2, max_length=100)
     description: str = Field(min_length=2, max_length=400)
-    status: str = Field(min_length=2, max_length=40)
+    status: BookStatus
     year_published: int = Field(gt=0)
 
     @field_validator("title", "author", "description")
@@ -28,15 +28,6 @@ class BookRequest(BaseModel):
         if value.startswith("_"):
             raise ValueError("Title cannot start with an underscore")
         return value
-
-    @field_validator("status")
-    @classmethod
-    def status_validator(cls, value: str) -> str:
-        allowed_statuses = {"available", "borrowed"}
-        val_lower = value.strip().lower()
-        if val_lower not in allowed_statuses:
-            raise ValueError(f"Status must be one of: {', '.join(allowed_statuses)}")
-        return val_lower
 
     @field_validator("year_published")
     @classmethod

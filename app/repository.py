@@ -1,11 +1,10 @@
 from typing import List, Optional, Dict, Any
 from bson import ObjectId
-from app.models import books_collection
 from app.schemas import BookQueryParams
 
 class Repository:
-    def __init__(self, db=None):
-        pass
+    def __init__(self, collection):
+        self.collection = collection
 
     async def get_all(self, params: BookQueryParams) -> tuple[List[Dict[str, Any]], int]:
         filter_query = {}
@@ -19,9 +18,9 @@ class Repository:
             sort_direction = -1 if params.sort_order == "desc" else 1
             sort_criteria = [(params.sort_by, sort_direction)]
 
-        total_count = await books_collection.count_documents(filter_query)
+        total_count = await self.collection.count_documents(filter_query)
         
-        cursor = books_collection.find(filter_query)
+        cursor = self.collection.find(filter_query)
         if sort_criteria:
             cursor = cursor.sort(sort_criteria)
             
@@ -41,7 +40,7 @@ class Repository:
         except Exception:
             return None
             
-        doc = await books_collection.find_one({"_id": obj_id})
+        doc = await self.collection.find_one({"_id": obj_id})
         if doc:
             doc["id"] = str(doc.pop("_id"))
         return doc
@@ -49,7 +48,7 @@ class Repository:
     async def create_many(self, books_dicts: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         if not books_dicts:
             return []
-        result = await books_collection.insert_many(books_dicts)
+        result = await self.collection.insert_many(books_dicts)
         for doc, _id in zip(books_dicts, result.inserted_ids):
             doc["id"] = str(_id)
             if "_id" in doc:
@@ -62,5 +61,5 @@ class Repository:
         except Exception:
             return False
             
-        result = await books_collection.delete_one({"_id": obj_id})
+        result = await self.collection.delete_one({"_id": obj_id})
         return result.deleted_count > 0

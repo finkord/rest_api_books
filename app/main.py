@@ -36,13 +36,15 @@ app.add_middleware(
 
 app.include_router(router)
 
+import logging
+
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
     """
     Global handler for exceptions.
     Prevents leaking internal database/application errors to the client.
     """
-    # In a real app, log the actual exception `exc` using a logger here
+    logging.error(f"Unhandled exception: {exc}", exc_info=True)
     return JSONResponse(
         status_code=500,
         content={"detail": "An internal server error occurred."},
