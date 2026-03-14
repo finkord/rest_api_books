@@ -1,6 +1,6 @@
 from typing import List, Dict, Any
 from fastapi import HTTPException
-from app.schemas import BookRequest
+from app.schemas import BookRequest, BookQueryParams
 from app.repository import Repository
 from app.utils import build_pagination_links
 
@@ -8,40 +8,25 @@ class BookService:
     def __init__(self, repository: Repository):
         self.repository = repository
 
-    async def get_books(
-        self,
-        status: str | None = None,
-        author: str | None = None,
-        sort_by: str | None = None,
-        sort_order: str = "asc",
-        limit: int = 10,
-        offset: int = 0
-    ) -> dict:
-        items, total = await self.repository.get_all(
-            status=status,
-            author=author,
-            sort_by=sort_by,
-            sort_order=sort_order,
-            limit=limit,
-            offset=offset
-        )
+    async def get_books(self, params: BookQueryParams) -> dict:
+        items, total = await self.repository.get_all(params)
         
         next_page, prev_page = build_pagination_links(
             base_url="/api/books",
-            limit=limit,
-            offset=offset,
+            limit=params.limit,
+            offset=params.offset,
             total=total,
-            status=status,
-            author=author,
-            sort_by=sort_by,
-            sort_order=sort_order
+            status=params.status,
+            author=params.author,
+            sort_by=params.sort_by,
+            sort_order=params.sort_order
         )
             
         return {
             "items": items,
             "total": total,
-            "limit": limit,
-            "offset": offset,
+            "limit": params.limit,
+            "offset": params.offset,
             "next_page": next_page,
             "prev_page": prev_page
         }

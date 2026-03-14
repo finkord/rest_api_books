@@ -59,3 +59,12 @@ class PaginatedBookResponse(BaseModel):
     offset: int
     next_page: str | None = None
     prev_page: str | None = None
+
+
+class BookQueryParams(BaseModel):
+    status: str | None = Field(None, description="Filter by status")
+    author: str | None = Field(None, description="Filter by author")
+    sort_by: str | None = Field(None, description="Sort by 'title' or 'year_published'")
+    sort_order: str = Field("asc", description="Sort order: 'asc' or 'desc'")
+    limit: int = Field(10, ge=1, le=100)
+    offset: int = Field(0, ge=0)

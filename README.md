@@ -42,3 +42,6 @@ uv sync
 uv run fastapi dev app/main.py
 ```
 *(By default, running locally without a `.env` configured for MongoDB will fall back to `mongodb://admin:adminpassword@localhost:27017`).*
+
+# Update dependencies
+uv pip compile pyproject.toml -o requirements

@@ -1,30 +1,23 @@
 from typing import List, Optional, Dict, Any
 from bson import ObjectId
 from app.models import books_collection
+from app.schemas import BookQueryParams
 
 class Repository:
     def __init__(self, db=None):
         pass
 
-    async def get_all(
-        self,
-        status: Optional[str] = None,
-        author: Optional[str] = None,
-        sort_by: Optional[str] = None,
-        sort_order: str = "asc",
-        limit: int = 10,
-        offset: int = 0
-    ) -> tuple[List[Dict[str, Any]], int]:
+    async def get_all(self, params: BookQueryParams) -> tuple[List[Dict[str, Any]], int]:
         filter_query = {}
-        if status:
-            filter_query["status"] = status
-        if author:
-            filter_query["author"] = author
+        if params.status:
+            filter_query["status"] = params.status
+        if params.author:
+            filter_query["author"] = params.author
 
         sort_criteria = None
-        if sort_by in ["title", "year_published"]:
-            sort_direction = -1 if sort_order == "desc" else 1
-            sort_criteria = [(sort_by, sort_direction)]
+        if params.sort_by in ["title", "year_published"]:
+            sort_direction = -1 if params.sort_order == "desc" else 1
+            sort_criteria = [(params.sort_by, sort_direction)]
 
         total_count = await books_collection.count_documents(filter_query)
         
@@ -32,9 +25,9 @@ class Repository:
         if sort_criteria:
             cursor = cursor.sort(sort_criteria)
             
-        cursor = cursor.skip(offset).limit(limit)
+        cursor = cursor.skip(params.offset).limit(params.limit)
         
-        docs = await cursor.to_list(length=limit)
+        docs = await cursor.to_list(length=params.limit)
         
         # map _id to id as string
         for doc in docs:

@@ -3,7 +3,7 @@ services:
 
   app:
     build: .
-    image: finkord/books-api:latest
+    image: finkord/books-api:lab4-a_e04d0e2
     restart: unless-stopped
     ports:
       - "8000:8000"
@@ -28,8 +28,6 @@ services:
       - ./data/mongodb:/data/db
     networks:
       - books_network
-
-
 
 networks:
   books_network:
