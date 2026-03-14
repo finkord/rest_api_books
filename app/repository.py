@@ -2,7 +2,7 @@ import uuid
 from typing import List, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from sqlalchemy import asc, desc, func
+from sqlalchemy import asc, desc, or_, and_
 from app.models import Book
 
 
@@ -17,8 +17,9 @@ class Repository:
         sort_by: Optional[str] = None,
         sort_order: str = "asc",
         limit: int = 10,
-        offset: int = 0
-    ) -> tuple[List[Book], int]:
+        cursor_val: Optional[str | int] = None,
+        cursor_id: Optional[uuid.UUID] = None
+    ) -> List[Book]:
         query = select(Book)
         
         if status:
@@ -26,19 +27,43 @@ class Repository:
         if author:
             query = query.where(Book.author == author)
             
-        if sort_by == "title":
-            order_func = desc(Book.title) if sort_order == "desc" else asc(Book.title)
-            query = query.order_by(order_func)
-        elif sort_by == "year_published":
-            order_func = desc(Book.year_published) if sort_order == "desc" else asc(Book.year_published)
-            query = query.order_by(order_func)
+        # Select the column to sort by
+        sort_col = Book.title if sort_by == "title" else Book.year_published if sort_by == "year_published" else None
+        
+        # Apply cursor logic if cursor provided
+        if cursor_val is not None and cursor_id is not None and sort_col is not None:
+            if sort_order == "desc":
+                query = query.where(
+                    or_(
+                        sort_col < cursor_val,
+                        and_(sort_col == cursor_val, Book.id < cursor_id)
+                    )
+                )
+            else:
+                query = query.where(
+                    or_(
+                        sort_col > cursor_val,
+                        and_(sort_col == cursor_val, Book.id > cursor_id)
+                    )
+                )
+        elif cursor_val is None and cursor_id is not None and sort_col is None:
+            # Fallback if no sort_by is specified (sorting just by ID or relying on DB default, but we should force ID sort)
+            pass
 
-        count_query = select(func.count()).select_from(query.subquery())
-        total_result = await self.session.execute(count_query)
-        total_count = total_result.scalar_one()
+        # Apply deterministic sorting
+        if sort_col is not None:
+            if sort_order == "desc":
+                query = query.order_by(desc(sort_col), desc(Book.id))
+            else:
+                query = query.order_by(asc(sort_col), asc(Book.id))
+        else:
+             query = query.order_by(asc(Book.id))
+             if cursor_id is not None:
+                 query = query.where(Book.id > cursor_id)
 
-        result = await self.session.execute(query.offset(offset).limit(limit))
-        return list(result.scalars().all()), total_count
+        # Fetch limit + 1 items to know if there's a next page
+        result = await self.session.execute(query.limit(limit + 1))
+        return list(result.scalars().all())
 
     async def get_by_id(self, book_id: uuid.UUID) -> Optional[Book]:
         result = await self.session.execute(select(Book).where(Book.id == book_id))

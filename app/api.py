@@ -3,7 +3,7 @@ from typing import List
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.models import async_session
-from app.schemas import BookRequest, BookResponse, PaginatedBookResponse
+from app.schemas import BookRequest, BookResponse, CursorPaginatedResponse
 from app.services import BookService
 from app.repository import Repository
 
@@ -24,14 +24,14 @@ async def health():
     return {"status": "ok"}
 
 
-@router.get("/books", response_model=PaginatedBookResponse)
+@router.get("/books", response_model=CursorPaginatedResponse)
 async def get_books(
     status: str | None = Query(None, description="Filter by status"),
     author: str | None = Query(None, description="Filter by author"),
     sort_by: str | None = Query(None, description="Sort by 'title' or 'year_published'"),
     sort_order: str = Query("asc", description="Sort order: 'asc' or 'desc'"),
     limit: int = Query(10, ge=1, le=100),
-    offset: int = Query(0, ge=0),
+    cursor: str | None = Query(None, description="Cursor for pagination"),
     service: BookService = Depends(get_service),
 ):
     return await service.get_books(
@@ -40,7 +40,7 @@ async def get_books(
         sort_by=sort_by,
         sort_order=sort_order,
         limit=limit,
-        offset=offset
+        cursor=cursor
     )
 
 

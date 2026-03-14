@@ -1,4 +1,6 @@
 import uuid
+import base64
+import json
 from typing import List
 from fastapi import HTTPException
 from app.models import Book
@@ -17,44 +19,50 @@ class BookService:
         sort_by: str | None = None,
         sort_order: str = "asc",
         limit: int = 10,
-        offset: int = 0
+        cursor: str | None = None
     ) -> dict:
-        items, total = await self.repository.get_all(
+        cursor_val = None
+        cursor_id = None
+        if cursor:
+            try:
+                decoded = base64.b64decode(cursor).decode("utf-8")
+                cursor_data = json.loads(decoded)
+                if "val" in cursor_data and "id" in cursor_data:
+                    cursor_val = cursor_data["val"]
+                    cursor_id = uuid.UUID(cursor_data["id"])
+                elif "id" in cursor_data:
+                    cursor_id = uuid.UUID(cursor_data["id"])
+            except Exception:
+                raise HTTPException(status_code=400, detail="Invalid cursor format")
+
+        items = await self.repository.get_all(
             status=status,
             author=author,
             sort_by=sort_by,
             sort_order=sort_order,
             limit=limit,
-            offset=offset
+            cursor_val=cursor_val,
+            cursor_id=cursor_id
         )
-        
-        # Build base URL to append query parameters easily
-        base_url = "/api/books"
-        params = []
-        if status: params.append(f"status={status}")
-        if author: params.append(f"author={author}")
-        if sort_by: params.append(f"sort_by={sort_by}")
-        params.append(f"sort_order={sort_order}")
-        
-        base_query = "&".join(params)
-        base_query = f"?{base_query}&" if base_query else "?"
 
-        next_page = None
-        if offset + limit < total:
-            next_page = f"{base_url}{base_query}limit={limit}&offset={offset + limit}"
-
-        prev_page = None
-        if offset > 0:
-            prev_offset = max(0, offset - limit)
-            prev_page = f"{base_url}{base_query}limit={limit}&offset={prev_offset}"
+        next_cursor = None
+        if len(items) > limit:
+            # Drop the extra item fetched for peek
+            last_item = items[limit - 1]
+            items = items[:limit]
             
+            cursor_dict = {"id": str(last_item.id)}
+            if sort_by == "title":
+                cursor_dict["val"] = last_item.title
+            elif sort_by == "year_published":
+                cursor_dict["val"] = last_item.year_published
+                
+            cursor_json = json.dumps(cursor_dict)
+            next_cursor = base64.b64encode(cursor_json.encode("utf-8")).decode("utf-8")
+
         return {
             "items": items,
-            "total": total,
-            "limit": limit,
-            "offset": offset,
-            "next_page": next_page,
-            "prev_page": prev_page
+            "next_cursor": next_cursor
         }
 
     async def get_book(self, book_id: uuid.UUID) -> Book:

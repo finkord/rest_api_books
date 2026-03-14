@@ -176,22 +176,23 @@ def test_get_books_pagination(client):
     }
     client.post("/api/books", json=new_book)
 
-    # First page: limit 1, offset 0
-    response1 = client.get("/api/books?limit=1&offset=0")
+    # First page: limit 1
+    response1 = client.get("/api/books?limit=1&sort_by=title&sort_order=asc")
     assert response1.status_code == 200
     data1 = response1.json()
     assert len(data1["items"]) == 1
-    assert data1["items"][0]["title"] == "1984"  # According to reset fixture
-    assert data1["total"] == 2
-    assert data1["next_page"] is not None
+    assert data1["items"][0]["title"] == "1984"  # 1984 ID was generated first
+    assert data1["next_cursor"] is not None
 
-    # Second page: limit 1, offset 1
-    response2 = client.get("/api/books?limit=1&offset=1")
+    cursor = data1["next_cursor"]
+
+    # Second page: limit 1, send cursor
+    response2 = client.get(f"/api/books?limit=1&sort_by=title&sort_order=asc&cursor={cursor}")
     assert response2.status_code == 200
     data2 = response2.json()
     assert len(data2["items"]) == 1
     assert data2["items"][0]["title"] == "Brave New World"
-    assert data2["prev_page"] is not None
+    assert data2["next_cursor"] is None
 
 
 def test_get_books_filter_by_status(client):

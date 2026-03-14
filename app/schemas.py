@@ -53,10 +53,6 @@ class BookResponse(BaseModel):
     year_published: int
 
 
-class PaginatedBookResponse(BaseModel):
+class CursorPaginatedResponse(BaseModel):
     items: list[BookResponse]
-    total: int
-    limit: int
-    offset: int
-    next_page: str | None = None
-    prev_page: str | None = None
+    next_cursor: str | None = None
