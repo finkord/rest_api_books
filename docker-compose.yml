@@ -3,12 +3,12 @@ services:
 
   app:
     build: .
-    image: finkord/books-api:lab2_b11dc11
+    image: finkord/books-api:latest
     restart: unless-stopped
     ports:
       - "8000:8000"
     depends_on:
-      - postgres
+      - mongodb
     env_file:
       - .env
     volumes:
@@ -16,9 +16,9 @@ services:
     networks:
       - books_network
 
-  mongodb_cnu:
+  mongodb:
     image: mongo:latest
-    container_name: mongodb_cnu
+    container_name: mongodb
     environment:
       MONGO_INITDB_ROOT_USERNAME: admin
       MONGO_INITDB_ROOT_PASSWORD: adminpassword
@@ -29,16 +29,7 @@ services:
     networks:
       - books_network
 
-  postgres:
-    image: postgres:16
-    restart: unless-stopped
-    env_file:
-      - .env
-    volumes:
-      - ./data/psql:/var/lib/postgresql/data
-      - ./configs/psql/:/docker-entrypoint-initdb.d
-    networks:
-      - books_network
+
 
 networks:
   books_network:

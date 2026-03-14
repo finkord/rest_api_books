@@ -1,6 +1,6 @@
 # Book Management REST API
 
-This is a FastAPI-based REST API for managing books, created for the Programming REST API Course. It integrates PostgreSQL via SQLAlchemy and provides Limit-Offset pagination.
+This is a FastAPI-based REST API for managing books, created for the Programming REST API Course. It integrates MongoDB via the async `motor` driver and provides Limit-Offset pagination.
 
 ## Features
 
@@ -12,7 +12,7 @@ This is a FastAPI-based REST API for managing books, created for the Programming
 
 ## Development Setup
 
-The easiest way to run the API and its PostgreSQL database is using Docker Compose.
+The easiest way to run the API and its MongoDB database is using Docker Compose.
 
 ### Using Docker Compose
 
@@ -41,12 +41,4 @@ uv sync
 # Run the Server
 uv run fastapi dev app/main.py
 ```
-*(By default, running locally without a `.env` configured for PostgreSQL will fall back to using a local SQLite database).*
-
-### Run Tests
-
-Tests are written using `pytest` and use an isolated local SQLite database to prevent interfering with your main PostgreSQL data. You can run them using `uv`:
-
-```bash
-uv run pytest tests/tests.py
-```
+*(By default, running locally without a `.env` configured for MongoDB will fall back to `mongodb://admin:adminpassword@localhost:27017`).*
