@@ -46,12 +46,15 @@ class Repository:
             doc["id"] = str(doc.pop("_id"))
         return doc
 
-    async def create(self, book_dict: Dict[str, Any]) -> Dict[str, Any]:
-        result = await books_collection.insert_one(book_dict)
-        book_dict["id"] = str(result.inserted_id)
-        if "_id" in book_dict:
-            del book_dict["_id"]
-        return book_dict
+    async def create_many(self, books_dicts: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        if not books_dicts:
+            return []
+        result = await books_collection.insert_many(books_dicts)
+        for doc, _id in zip(books_dicts, result.inserted_ids):
+            doc["id"] = str(_id)
+            if "_id" in doc:
+                del doc["_id"]
+        return books_dicts
 
     async def delete(self, book_id: str) -> bool:
         try:

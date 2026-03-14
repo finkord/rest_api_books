@@ -33,9 +33,10 @@ async def get_book(book_id: str, service: BookService = Depends(get_service)):
     return await service.get_book(book_id)
 
 
-@router.post("/books", status_code=201, response_model=BookResponse)
-async def create_book(book: BookRequest, service: BookService = Depends(get_service)):
-    return await service.create_book(book)
+@router.post("/books", status_code=201, response_model=List[BookResponse])
+async def create_books(books: List[BookRequest], service: BookService = Depends(get_service)):
+    """Bulk create multiple books."""
+    return await service.create_books(books)
 
 
 @router.delete("/books/{book_id}")

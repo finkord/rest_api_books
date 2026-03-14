@@ -37,9 +37,11 @@ class BookService:
             raise HTTPException(status_code=404, detail="Book not found")
         return book
 
-    async def create_book(self, book_request: BookRequest) -> Dict[str, Any]:
-        book_dict = book_request.model_dump()
-        return await self.repository.create(book_dict)
+    async def create_books(self, books_request: List[BookRequest]) -> List[Dict[str, Any]]:
+        if not books_request:
+            return []
+        books_dicts = [book.model_dump() for book in books_request]
+        return await self.repository.create_many(books_dicts)
 
     async def delete_book(self, book_id: str) -> dict:
         deleted = await self.repository.delete(book_id)

@@ -1,6 +1,12 @@
 from pydantic import BaseModel, Field, field_validator
 from datetime import datetime
+from enum import Enum
+from typing import Optional, Literal
 
+class BookStatus(str, Enum):
+    """Allowed states for a book's availability."""
+    available = "available"
+    borrowed = "borrowed"
 
 class BookRequest(BaseModel):
     title: str = Field(min_length=2, max_length=100)
@@ -62,9 +68,9 @@ class PaginatedBookResponse(BaseModel):
 
 
 class BookQueryParams(BaseModel):
-    status: str | None = Field(None, description="Filter by status")
+    status: Optional[BookStatus] | None = Field(None, description="Filter by status")
     author: str | None = Field(None, description="Filter by author")
-    sort_by: str | None = Field(None, description="Sort by 'title' or 'year_published'")
-    sort_order: str = Field("asc", description="Sort order: 'asc' or 'desc'")
+    sort_by: Optional[Literal["title", "year_published"]] | None = Field(None, description="Sort by 'title' or 'year_published'")
+    sort_order: Literal["asc", "desc"] = Field("asc", description="Sort order: 'asc' or 'desc'")
     limit: int = Field(10, ge=1, le=100)
     offset: int = Field(0, ge=0)
