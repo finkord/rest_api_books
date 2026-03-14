@@ -1,5 +1,5 @@
 import uuid
-from typing import List
+from typing import List, Literal
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.models import async_session
@@ -26,10 +26,10 @@ async def health():
 
 @router.get("/books", response_model=PaginatedBookResponse)
 async def get_books(
-    status: str | None = Query(None, description="Filter by status"),
+    status: Literal["available", "borrowed"] | None = Query(None, description="Filter by status"),
     author: str | None = Query(None, description="Filter by author"),
-    sort_by: str | None = Query(None, description="Sort by 'title' or 'year_published'"),
-    sort_order: str = Query("asc", description="Sort order: 'asc' or 'desc'"),
+    sort_by: Literal["title", "year_published"] | None = Query(None, description="Sort by 'title' or 'year_published'"),
+    sort_order: Literal["asc", "desc"] = Query("asc", description="Sort order: 'asc' or 'desc'"),
     limit: int = Query(10, ge=1, le=100),
     offset: int = Query(0, ge=0),
     service: BookService = Depends(get_service),
