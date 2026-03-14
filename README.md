@@ -1,27 +1,29 @@
 # Book Management REST API
 
-This is a FastAPI-based REST API for managing books, created for the Programming REST API Course. It integrates PostgreSQL via SQLAlchemy and provides Limit-Offset pagination.
+This is a FastAPI-based REST API for managing books, created for the Programming REST API Course. It integrates PostgreSQL via SQLAlchemy and provides cursor-based pagination, dynamic filtering, and sorting.
 
 ## Features
 
-- **Get all books** (`GET /api/books?limit=10&offset=0`) - Supports Limit-Offset pagination
+- **Get all books** (`GET /api/books?limit=10&cursor=...`) - Supports cursor-based pagination
+  - **Filtering**: Filter by `status` (available, borrowed) or `author`.
+  - **Sorting**: Sort by `title` or `year_published` in `asc` or `desc` order.
 - **Get a specific book** (`GET /api/books/{book_id}`)
-- **Create a new book** (`POST /api/books`)
+- **Create multiple books** (`POST /api/books`) - Accepts a JSON array of books.
 - **Delete a book** (`DELETE /api/books/{book_id}`)
 - **Check health status** (`GET /api/health`)
 
 ## Development Setup
 
-The easiest way to run the API and its PostgreSQL database is using Docker Compose.
+The easiest way to run the API and its PostgreSQL database is using Docker Compose. A `Makefile` is also provided for convenience.
 
-### Using Docker Compose
+### Using Docker Compose / Makefile
 
-Ensure Docker is installed on your machine.
+Ensure Docker and `make` are installed on your machine.
 
 1. Ensure you have a `.env` file in the root directory containing your database credentials.
-2. Start the services:
+2. Start the services using the provided make target:
    ```bash
-   docker compose up -d --build
+   make compose-up-build
    ```
 
 The API will be available at [http://localhost:8000/](http://localhost:8000/).
