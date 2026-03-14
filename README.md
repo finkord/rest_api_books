@@ -1,60 +1,110 @@
-# Book Management REST API
+# Book Management REST API (FastAPI)
 
-This is a FastAPI-based REST API for managing books, created for the Programming REST API Course. It integrates PostgreSQL via SQLAlchemy and provides Limit-Offset pagination.
+A high-performance, asynchronous REST API for managing books, built with **FastAPI**, **PostgreSQL**, and **SQLAlchemy**. This project features a robust layered architecture, JWT authentication with refresh token flow, and Alembic for database migrations.
 
 ## Features
 
-- **Get all books** (`GET /api/books?limit=10&offset=0`) - Supports Limit-Offset pagination
-- **Get a specific book** (`GET /api/books/{book_id}`)
-- **Create a new book** (`POST /api/books`)
-- **Delete a book** (`DELETE /api/books/{book_id}`)
-- **Check health status** (`GET /api/health`)
+- **JWT Authentication**: Secure registration, login, and token refresh.
+- **Layered Architecture**: Decoupled API, Service, Repository, and Data layers.
+- **Database Migrations**: Integrated Alembic for robust schema management.
+- **Limit-Offset Pagination**: Optimized queries using the **Deferred Joins** pattern.
+- **Unified Error Handling**: Global exception handling with custom domain exceptions.
+- **Interactive Documentation**: Swagger UI available at `/docs`.
 
-## Development Setup
+---
 
-The easiest way to run the API and its PostgreSQL database is using Docker Compose.
+## Project Architecture
+
+- **API Layer (`app/api.py`, `app/auth.py`)**: Endpoints, request parsing, and response formatting.
+- **Service Layer (`app/services.py`)**: Business logic and domain rules.
+- **Repository Layer (`app/repository.py`)**: Database interaction and complex query logic.
+- **Models/Schemas (`app/models.py`, `app/schemas.py`)**: SQLAlchemy models and Pydantic validation schemas.
+- **Security (`app/security.py`)**: Password hashing (Bcrypt) and JWT token operations.
+
+---
+
+## Setup & Running
+
+The easiest way to run the API and its PostgreSQL database is using **Docker Compose**.
 
 ### Using Docker Compose
-
-Ensure Docker is installed on your machine.
-
-1. Ensure you have a `.env` file in the root directory containing your database credentials.
-2. Start the services:
+1. **Configure Environment**: Create a `.env` file (see `.env_example`).
    ```bash
-   docker compose up -d --build
+   cp .env_example .env
+   ```
+2. **Build and Start**:
+   ```bash
+   make build
+   make compose-up
+   ```
+3. **Apply Migrations**:
+   ```bash
+   docker exec -it rest_api_cnu-app-1 uv run alembic upgrade head
    ```
 
-The API will be available at [http://localhost:8000/](http://localhost:8000/).
-Interactive documentation (Swagger UI) is automatically generated and available at [http://localhost:8000/docs](http://localhost:8000/docs).
-
 ### Local Setup (Without Docker)
+1. **Initialize Project**:
+   ```bash
+   uv sync
+   source .venv/bin/activate
+   ```
+2. **Run Server**:
+   ```bash
+   uv run fastapi dev app/main.py
+   ```
 
-The project uses `uv` for dependency management. If you want to run it locally without Docker:
+---
 
-```bash
-# Activate Virtual Environment
-source .venv/bin/activate
+## Authentication Workflow
 
-# Install dependencies
-uv sync
+1. **Register**: `POST /api/auth/register`
+2. **Login**: `POST /api/auth/login` (Standard form) -> Recive `access_token` & `refresh_token`.
+3. **Authorize**: Add `Authorization: Bearer <access_token>` to your headers for book endpoints.
+4. **Refresh**: `POST /api/auth/refresh` using the `refresh_token` when the access token expires.
 
-# Run the Server
-uv run fastapi dev app/main.py
-```
-*(By default, running locally without a `.env` configured for PostgreSQL will fall back to using a local SQLite database).*
+---
 
-### Run Tests
+## Database Migrations (Alembic)
 
-Tests are written using `pytest` and use an isolated local SQLite database to prevent interfering with your main PostgreSQL data. You can run them using `uv`:
+When you modify `app/models.py`:
+- **Generate a new migration**:
+  ```bash
+  docker exec -it rest_api_cnu-app-1 uv run alembic revision --autogenerate -m "description"
+  ```
+- **Apply migrations**:
+  ```bash
+  docker exec -it rest_api_cnu-app-1 uv run alembic upgrade head
+  ```
 
-```bash
-uv run pytest tests/tests.py
-```
+---
+
+## Management & Infrastructure
 
 ### Seed Users
-
-If u need create test users use this script or swagger ui
-
+To add initial test users to the database:
 ```bash
 docker exec -it rest_api_cnu-app-1 env PYTHONPATH=. python app/seed_users.py
 ```
+
+### Dependency Management
+If you update `pyproject.toml`, compile the new `requirements` file for Docker:
+```bash
+uv pip compile pyproject.toml -o requirements
+```
+
+### Run Tests
+```bash
+uv run pytest tests/tests.py -v
+```
+
+---
+
+## Environment Configuration
+
+| Variable | Description |
+| :--- | :--- |
+| `DATABASE_URL` | Asyncpg connection string |
+| `DB_ECHO` | Enable SQL statement logging |
+| `SECRET_KEY` | Key for JWT signing |
+| `ACCESS_TOKEN_EXPIRE_MINUTES` | Access Token lifespan |
+| `REFRESH_TOKEN_EXPIRE_DAYS` | Refresh Token lifespan |
