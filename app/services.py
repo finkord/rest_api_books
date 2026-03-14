@@ -1,10 +1,22 @@
 import uuid
 import urllib.parse
+import jwt
 from typing import List
-from app.models import Book
-from app.schemas import BookRequest
-from app.repository import Repository
+from fastapi import HTTPException, status
+from fastapi.security import OAuth2PasswordRequestForm
+
+from app.models import Book, User
+from app.schemas import BookRequest, UserCreate, RefreshTokenRequest
+from app.repository import Repository, UserRepository
 from app.exceptions import NotFoundError
+from app.security import (
+    verify_password,
+    get_password_hash,
+    create_access_token,
+    create_refresh_token,
+    SECRET_KEY,
+    ALGORITHM
+)
 
 
 class BookService:
@@ -79,3 +91,62 @@ class BookService:
         if not deleted:
             raise NotFoundError("Book not found")
         return {"message": "Book deleted"}
+
+
+class AuthService:
+    def __init__(self, repository: UserRepository):
+        self.repository = repository
+
+    async def register(self, user: UserCreate) -> User:
+        existing_user = await self.repository.get_by_username(user.username)
+        if existing_user:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Username already registered"
+            )
+        
+        hashed_password = await get_password_hash(user.password)
+        db_user = User(username=user.username, hashed_password=hashed_password)
+        return await self.repository.create(db_user)
+
+    async def login(self, form_data: OAuth2PasswordRequestForm) -> dict:
+        user = await self.repository.get_by_username(form_data.username)
+        if not user or not await verify_password(form_data.password, user.hashed_password):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Incorrect username or password",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        
+        access_token = create_access_token(data={"sub": user.username})
+        refresh_token = create_refresh_token(data={"sub": user.username})
+        
+        return {"access_token": access_token, "refresh_token": refresh_token, "token_type": "bearer"}
+
+    async def refresh_token(self, request: RefreshTokenRequest) -> dict:
+        credentials_exception = HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Could not validate credentials",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+        
+        try:
+            payload = jwt.decode(request.refresh_token, SECRET_KEY, algorithms=[ALGORITHM])
+            if payload.get("type") != "refresh":
+                raise HTTPException(status_code=401, detail="Invalid token type")
+            username: str = payload.get("sub")
+            if username is None:
+                raise credentials_exception
+        except jwt.ExpiredSignatureError:
+            raise HTTPException(status_code=401, detail="Refresh token expired")
+        except jwt.InvalidTokenError:
+            raise credentials_exception
+            
+        user = await self.repository.get_by_username(username=username)
+        if user is None:
+            raise credentials_exception
+            
+        access_token = create_access_token(data={"sub": user.username})
+        new_refresh_token = create_refresh_token(data={"sub": user.username})
+        
+        return {"access_token": access_token, "refresh_token": new_refresh_token, "token_type": "bearer"}

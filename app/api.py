@@ -4,16 +4,12 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.models import async_session, User
 from app.schemas import BookRequest, BookResponse, PaginatedBookResponse
+from app.dependencies import get_db
 from app.services import BookService
 from app.repository import Repository
 from app.security import get_current_user
 
 router = APIRouter(prefix="/api", tags=["Books"])
-
-
-async def get_db():
-    async with async_session() as session:
-        yield session
 
 
 async def get_service(db: AsyncSession = Depends(get_db)):
