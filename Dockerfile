@@ -13,6 +13,9 @@ RUN uv pip install --system --no-cache -r /code/requirements
 
 # Copy the rest of the application code
 COPY ./app /code/app
+COPY ./alembic /code/alembic
+COPY ./alembic.ini /code/alembic.ini
+COPY ./pyproject.toml /code/pyproject.toml
 
 # Command to run the application using gunicorn (production WSGI server)
 # Use the exec form of CMD for proper signal handling
