@@ -52,3 +52,9 @@ Tests are written using `pytest` and use an isolated local SQLite database to pr
 ```bash
 uv run pytest tests/tests.py
 ```
+
+## Update dependencies
+
+```bash
+uv pip compile pyproject.toml -o requirements
+```
