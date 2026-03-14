@@ -1,6 +1,10 @@
+"""
+Service layer containing the business logic for Book entities.
+"""
 import uuid
 import base64
 import json
+import binascii
 from typing import List
 from fastapi import HTTPException
 from app.models import Book
@@ -9,6 +13,8 @@ from app.repository import Repository
 
 
 class BookService:
+    """Service class abstracting business logic for the Book API endpoints."""
+    
     def __init__(self, repository: Repository):
         self.repository = repository
 
@@ -32,7 +38,7 @@ class BookService:
                     cursor_id = uuid.UUID(cursor_data["id"])
                 elif "id" in cursor_data:
                     cursor_id = uuid.UUID(cursor_data["id"])
-            except Exception:
+            except (binascii.Error, json.JSONDecodeError, KeyError, ValueError):
                 raise HTTPException(status_code=400, detail="Invalid cursor format")
 
         items = await self.repository.get_all(

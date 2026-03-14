@@ -754,7 +754,7 @@ dev = [
 requires-dist = [
     { name = "aiosqlite", specifier = ">=0.22.1" },
     { name = "asyncpg", specifier = ">=0.31.0" },
-    { name = "fastapi", extras = ["standard"], specifier = ">=0.135.1" },
+    { name = "fastapi", extras = ["standard"], specifier = ">=0.134.0" },
     { name = "sqlalchemy", specifier = ">=2.0.47" },
     { name = "uvicorn", specifier = ">=0.41.0" },
 ]

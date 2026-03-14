@@ -1,3 +1,6 @@
+"""
+Repository layer handling all interactions with the database.
+"""
 import uuid
 from typing import List, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -7,6 +10,8 @@ from app.models import Book
 
 
 class Repository:
+    """Data access abstraction for Book entities over SQLAlchemy AsyncSession."""
+    
     def __init__(self, session: AsyncSession):
         self.session = session
 

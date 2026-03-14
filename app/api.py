@@ -1,3 +1,6 @@
+"""
+API router definitions for the Book endpoints.
+"""
 import uuid
 from typing import List
 from fastapi import APIRouter, Depends, Query
@@ -21,6 +24,7 @@ async def get_service(db: AsyncSession = Depends(get_db)):
 
 @router.get("/health")
 async def health():
+    """Check the health status of the API."""
     return {"status": "ok"}
 
 
@@ -34,6 +38,10 @@ async def get_books(
     cursor: str | None = Query(None, description="Cursor for pagination"),
     service: BookService = Depends(get_service),
 ):
+    """
+    Retrieve a paginated list of books.
+    Supports filtering by status and author, and custom sorting.
+    """
     return await service.get_books(
         status=status,
         author=author,
@@ -46,14 +54,17 @@ async def get_books(
 
 @router.get("/books/{book_id}", response_model=BookResponse)
 async def get_book(book_id: uuid.UUID, service: BookService = Depends(get_service)):
+    """Retrieve a single book by its UUID."""
     return await service.get_book(book_id)
 
 
 @router.post("/books", status_code=201, response_model=List[BookResponse])
 async def create_books(books: List[BookRequest], service: BookService = Depends(get_service)):
+    """Bulk create multiple books."""
     return await service.create_books(books)
 
 
 @router.delete("/books/{book_id}")
 async def delete_book(book_id: uuid.UUID, service: BookService = Depends(get_service)):
+    """Delete a single book by its UUID."""
     return await service.delete_book(book_id)
