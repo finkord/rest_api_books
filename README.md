@@ -19,8 +19,10 @@ The easiest way to run the API and its MongoDB database is using Docker Compose.
 Ensure Docker is installed on your machine.
 
 1. Ensure you have a `.env` file in the root directory containing your database credentials.
-2. Start the services:
+2. Start the services using Docker Compose directly or via Makefile:
    ```bash
+   make compose-up-build
+   # or
    docker compose up -d --build
    ```
 
@@ -43,5 +45,16 @@ uv run fastapi dev app/main.py
 ```
 *(By default, running locally without a `.env` configured for MongoDB will fall back to `mongodb://admin:adminpassword@localhost:27017`).*
 
-# Update dependencies
+### Running Tests
+
+The project includes an extensive test suite that validates the integration with MongoDB. The tests will dynamically spin up an isolated test database.
+
+Ensure you have a local MongoDB running or the Docker Compose MongoDB container running, then execute:
+
+```bash
+# Run tests
+uv run pytest tests/tests.py
+```
+
+## Update dependencies
 uv pip compile pyproject.toml -o requirements
