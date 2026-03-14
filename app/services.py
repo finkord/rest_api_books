@@ -1,6 +1,5 @@
 import uuid
 import urllib.parse
-import jwt
 from typing import List
 from fastapi import HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
@@ -8,14 +7,13 @@ from fastapi.security import OAuth2PasswordRequestForm
 from app.models import Book, User
 from app.schemas import BookRequest, UserCreate, RefreshTokenRequest
 from app.repository import Repository, UserRepository
-from app.exceptions import NotFoundError
+from app.exceptions import NotFoundError, InvalidTokenError, ExpiredTokenError
 from app.security import (
     verify_password,
     get_password_hash,
     create_access_token,
     create_refresh_token,
-    SECRET_KEY,
-    ALGORITHM
+    verify_token_type,
 )
 
 
@@ -131,15 +129,13 @@ class AuthService:
         )
         
         try:
-            payload = jwt.decode(request.refresh_token, SECRET_KEY, algorithms=[ALGORITHM])
-            if payload.get("type") != "refresh":
-                raise HTTPException(status_code=401, detail="Invalid token type")
+            payload = verify_token_type(request.refresh_token, "refresh")
             username: str = payload.get("sub")
             if username is None:
                 raise credentials_exception
-        except jwt.ExpiredSignatureError:
+        except ExpiredTokenError:
             raise HTTPException(status_code=401, detail="Refresh token expired")
-        except jwt.InvalidTokenError:
+        except InvalidTokenError:
             raise credentials_exception
             
         user = await self.repository.get_by_username(username=username)

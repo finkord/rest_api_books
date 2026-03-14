@@ -11,6 +11,7 @@ import bcrypt
 from app.models import async_session, User
 from app.repository import UserRepository
 from app.dependencies import get_db
+from app.exceptions import InvalidTokenError, ExpiredTokenError
 
 SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key-for-dev")
 ALGORITHM = os.getenv("ALGORITHM", "HS256")
@@ -46,6 +47,17 @@ def create_refresh_token(data: dict):
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
+def verify_token_type(token: str, expected_type: str) -> dict:
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        if payload.get("type") != expected_type:
+            raise InvalidTokenError("Invalid token type")
+        return payload
+    except jwt.ExpiredSignatureError:
+        raise ExpiredTokenError("Token has expired")
+    except jwt.InvalidTokenError:
+        raise InvalidTokenError("Invalid token")
+
 async def get_current_user(token: str = Depends(oauth2_scheme), session: AsyncSession = Depends(get_db)):
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -53,15 +65,13 @@ async def get_current_user(token: str = Depends(oauth2_scheme), session: AsyncSe
         headers={"WWW-Authenticate": "Bearer"},
     )
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        if payload.get("type") != "access":
-            raise credentials_exception
+        payload = verify_token_type(token, "access")
         username: str = payload.get("sub")
         if username is None:
             raise credentials_exception
-    except jwt.ExpiredSignatureError:
-        raise HTTPException(status_code=401, detail="Token has expired")
-    except jwt.InvalidTokenError:
+    except ExpiredTokenError:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token has expired")
+    except InvalidTokenError:
         raise credentials_exception
     
     repo = UserRepository(session)
