@@ -75,6 +75,13 @@ class Repository:
         await self.session.refresh(book)
         return book
 
+    async def create_many(self, books: List[Book]) -> List[Book]:
+        self.session.add_all(books)
+        await self.session.commit()
+        for book in books:
+            await self.session.refresh(book)
+        return books
+
     async def delete(self, book_id: uuid.UUID) -> bool:
         book = await self.get_by_id(book_id)
         if book:

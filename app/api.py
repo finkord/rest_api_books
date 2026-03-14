@@ -26,7 +26,7 @@ async def health():
 
 @router.get("/books", response_model=CursorPaginatedResponse)
 async def get_books(
-    status: str | None = Query(None, description="Filter by status"),
+    status: str | None = Query(None, description="Filter by status (available, borrowed)"),
     author: str | None = Query(None, description="Filter by author"),
     sort_by: str | None = Query(None, description="Sort by 'title' or 'year_published'"),
     sort_order: str = Query("asc", description="Sort order: 'asc' or 'desc'"),
@@ -49,9 +49,9 @@ async def get_book(book_id: uuid.UUID, service: BookService = Depends(get_servic
     return await service.get_book(book_id)
 
 
-@router.post("/books", status_code=201, response_model=BookResponse)
-async def create_book(book: BookRequest, service: BookService = Depends(get_service)):
-    return await service.create_book(book)
+@router.post("/books", status_code=201, response_model=List[BookResponse])
+async def create_books(books: List[BookRequest], service: BookService = Depends(get_service)):
+    return await service.create_books(books)
 
 
 @router.delete("/books/{book_id}")

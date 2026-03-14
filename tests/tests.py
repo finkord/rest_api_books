@@ -92,11 +92,12 @@ def test_create_book(client):
         "status": "available",
         "year_published": 1932,
     }
-    response = client.post("/api/books", json=new_book)
+    response = client.post("/api/books", json=[new_book])
     assert response.status_code == 201
     data = response.json()
-    assert "id" in data
-    assert data["title"] == new_book["title"]
+    assert len(data) == 1
+    assert "id" in data[0]
+    assert data[0]["title"] == new_book["title"]
 
 
 def test_create_book_invalid_title(client):
@@ -107,7 +108,7 @@ def test_create_book_invalid_title(client):
         "status": "available",
         "year_published": 2000,
     }
-    response = client.post("/api/books", json=new_book)
+    response = client.post("/api/books", json=[new_book])
     assert response.status_code == 422
 
 
@@ -130,7 +131,7 @@ def test_create_book_empty_fields(client):
         "status": "available",
         "year_published": 2000,
     }
-    response = client.post("/api/books", json=new_book)
+    response = client.post("/api/books", json=[new_book])
     assert response.status_code == 422
 
 
@@ -142,7 +143,7 @@ def test_create_book_invalid_status(client):
         "status": "lost",
         "year_published": 2000,
     }
-    response = client.post("/api/books", json=new_book)
+    response = client.post("/api/books", json=[new_book])
     assert response.status_code == 422
 
 
@@ -154,7 +155,7 @@ def test_create_book_future_year(client):
         "status": "available",
         "year_published": 2050,
     }
-    response = client.post("/api/books", json=new_book)
+    response = client.post("/api/books", json=[new_book])
     assert response.status_code == 422
 
 
@@ -174,7 +175,7 @@ def test_get_books_pagination(client):
         "status": "available",
         "year_published": 1932,
     }
-    client.post("/api/books", json=new_book)
+    client.post("/api/books", json=[new_book])
 
     # First page: limit 1
     response1 = client.get("/api/books?limit=1&sort_by=title&sort_order=asc")
@@ -203,7 +204,7 @@ def test_get_books_filter_by_status(client):
         "status": "borrowed",
         "year_published": 1932,
     }
-    client.post("/api/books", json=new_book)
+    client.post("/api/books", json=[new_book])
 
     response = client.get("/api/books?status=borrowed")
     assert response.status_code == 200
@@ -236,7 +237,7 @@ def test_get_books_sort_by_title_asc(client):
         "status": "available",
         "year_published": 1945,
     }
-    client.post("/api/books", json=new_book)
+    client.post("/api/books", json=[new_book])
 
     response = client.get("/api/books?sort_by=title&sort_order=asc")
     assert response.status_code == 200
@@ -254,7 +255,7 @@ def test_get_books_sort_by_title_desc(client):
         "status": "available",
         "year_published": 1945,
     }
-    client.post("/api/books", json=new_book)
+    client.post("/api/books", json=[new_book])
 
     response = client.get("/api/books?sort_by=title&sort_order=desc")
     assert response.status_code == 200
@@ -272,7 +273,7 @@ def test_get_books_sort_by_year_published(client):
         "status": "available",
         "year_published": 1945,
     }
-    client.post("/api/books", json=new_book)
+    client.post("/api/books", json=[new_book])
 
     response = client.get("/api/books?sort_by=year_published&sort_order=desc")
     assert response.status_code == 200
@@ -280,3 +281,30 @@ def test_get_books_sort_by_year_published(client):
     assert len(data["items"]) == 2
     assert data["items"][0]["year_published"] == 1949 # 1984 was published in 1949
     assert data["items"][1]["year_published"] == 1945
+
+
+def test_create_multiple_books(client):
+    new_books = [
+        {
+            "title": "Book 1",
+            "author": "Author A",
+            "description": "First bulk book",
+            "status": "available",
+            "year_published": 2021,
+        },
+        {
+            "title": "Book 2",
+            "author": "Author B",
+            "description": "Second bulk book",
+            "status": "borrowed",
+            "year_published": 2022,
+        }
+    ]
+    response = client.post("/api/books", json=new_books)
+    assert response.status_code == 201
+    data = response.json()
+    assert len(data) == 2
+    assert data[0]["title"] == "Book 1"
+    assert data[1]["title"] == "Book 2"
+    assert "id" in data[0]
+    assert "id" in data[1]
