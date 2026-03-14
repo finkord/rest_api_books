@@ -3,7 +3,7 @@ services:
 
   app:
     build: .
-    image: finkord/books-api:lab3-a_49ed2bc
+    image: finkord/books-api:lab3-a_e4d0541
     restart: unless-stopped
     ports:
       - "8000:8000"
