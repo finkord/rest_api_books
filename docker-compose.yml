@@ -2,7 +2,7 @@
 services:
 
   app:
-    image: finkord/books-api:latest
+    image: finkord/books-api:lab5_16d3be9
     restart: unless-stopped
     ports:
       - "8000:8000"
