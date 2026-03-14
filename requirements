@@ -46,6 +46,8 @@ packaging==26.0
     #   pytest
 pluggy==1.6.0
     # via pytest
+psycopg2-binary==2.9.11
+    # via rest-api-cnu (pyproject.toml)
 pydantic==2.12.5
     # via rest-api-cnu (pyproject.toml)
 pydantic-core==2.41.5

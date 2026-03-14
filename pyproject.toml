@@ -8,6 +8,7 @@ dependencies = [
     "flask>=3.1.0",
     "flask-restful>=0.3.10",
     "flasgger>=0.9.7",
+    "psycopg2-binary>=2.9.9",
     "pydantic>=2.12.5",
     "pytest>=9.0.2",
     "sqlalchemy>=2.0.47",
