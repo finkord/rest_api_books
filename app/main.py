@@ -5,7 +5,7 @@ Configures FastAPI app, CORS, lifespans, and routers.
 from contextlib import asynccontextmanager
 import uvicorn
 from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -55,6 +55,10 @@ async def sqlalchemy_exception_handler(request: Request, exc: SQLAlchemyError):
         status_code=500,
         content={"detail": "An internal database error occurred."},
     )
+
+@app.get("/", include_in_schema=False)
+def root():
+    return RedirectResponse(url="/docs")
 
 if __name__ == "__main__":
     uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True)
