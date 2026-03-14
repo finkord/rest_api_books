@@ -1,9 +1,8 @@
-"""
-Pydantic schemas for data validation and API payloads.
-"""
 from pydantic import BaseModel, Field, field_validator
+from fastapi import Query
 import uuid
 from datetime import datetime
+from typing import Optional
 from enum import Enum
 
 
@@ -63,3 +62,22 @@ class CursorPaginatedResponse(BaseModel):
     
     items: list[BookResponse]
     next_cursor: str | None = None
+
+
+class BookQueryParams:
+    """Encapsulates all query parameters for fetching books."""
+    def __init__(
+        self,
+        status: Optional[BookStatus] = Query(None, description="Filter by status (available, borrowed)"),
+        author: Optional[str] = Query(None, description="Filter by author"),
+        sort_by: Optional[str] = Query(None, description="Sort by 'title' or 'year_published'"),
+        sort_order: str = Query("asc", description="Sort order: 'asc' or 'desc'"),
+        limit: int = Query(10, ge=1, le=100),
+        cursor: Optional[str] = Query(None, description="Cursor for pagination"),
+    ):
+        self.status = status
+        self.author = author
+        self.sort_by = sort_by
+        self.sort_order = sort_order
+        self.limit = limit
+        self.cursor = cursor

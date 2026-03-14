@@ -3,10 +3,10 @@ API router definitions for the Book endpoints.
 """
 import uuid
 from typing import List
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.models import async_session
-from app.schemas import BookRequest, BookResponse, CursorPaginatedResponse
+from app.schemas import BookRequest, BookResponse, CursorPaginatedResponse, BookQueryParams
 from app.services import BookService
 from app.repository import Repository
 
@@ -30,26 +30,14 @@ async def health():
 
 @router.get("/books", response_model=CursorPaginatedResponse)
 async def get_books(
-    status: str | None = Query(None, description="Filter by status (available, borrowed)"),
-    author: str | None = Query(None, description="Filter by author"),
-    sort_by: str | None = Query(None, description="Sort by 'title' or 'year_published'"),
-    sort_order: str = Query("asc", description="Sort order: 'asc' or 'desc'"),
-    limit: int = Query(10, ge=1, le=100),
-    cursor: str | None = Query(None, description="Cursor for pagination"),
+    params: BookQueryParams = Depends(),
     service: BookService = Depends(get_service),
 ):
     """
     Retrieve a paginated list of books.
     Supports filtering by status and author, and custom sorting.
     """
-    return await service.get_books(
-        status=status,
-        author=author,
-        sort_by=sort_by,
-        sort_order=sort_order,
-        limit=limit,
-        cursor=cursor
-    )
+    return await service.get_books(params)
 
 
 @router.get("/books/{book_id}", response_model=BookResponse)

@@ -4,8 +4,10 @@ Configures FastAPI app, CORS, lifespans, and routers.
 """
 from contextlib import asynccontextmanager
 import uvicorn
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy.exc import SQLAlchemyError
 
 from app.api import router
 from app.models import engine, Base
@@ -41,6 +43,18 @@ app.add_middleware(
 )
 
 app.include_router(router)
+
+@app.exception_handler(SQLAlchemyError)
+async def sqlalchemy_exception_handler(request: Request, exc: SQLAlchemyError):
+    """
+    Global handler for database exceptions.
+    Prevents leaking internal database errors (like SQL queries or structure) to the client.
+    """
+    # In a real app, log the actual exception `exc` using a logger here
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "An internal database error occurred."},
+    )
 
 if __name__ == "__main__":
     uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True)
