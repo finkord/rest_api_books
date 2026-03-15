@@ -1,6 +1,7 @@
 import uuid
+import urllib.parse
 from typing import List, Literal
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.models import async_session, User
 from app.schemas import BookRequest, BookResponse, PaginatedBookResponse
@@ -23,6 +24,7 @@ async def health():
 
 @router.get("/books", response_model=PaginatedBookResponse)
 async def get_books(
+    request: Request,
     status: Literal["available", "borrowed"] | None = Query(None, description="Filter by status"),
     author: str | None = Query(None, description="Filter by author"),
     sort_by: Literal["title", "year_published"] | None = Query(None, description="Sort by 'title' or 'year_published'"),
@@ -32,7 +34,7 @@ async def get_books(
     service: BookService = Depends(get_service),
     current_user: User = Depends(get_current_user),
 ):
-    return await service.get_books(
+    result = await service.get_books(
         status=status,
         author=author,
         sort_by=sort_by,
@@ -40,6 +42,26 @@ async def get_books(
         limit=limit,
         offset=offset
     )
+    
+    total = result["total"]
+    
+    base_url = str(request.url.replace(query=""))
+    query_params = dict(request.query_params)
+    
+    next_page = None
+    if offset + limit < total:
+        next_params = {**query_params, "limit": limit, "offset": offset + limit}
+        next_page = f"{base_url}?{urllib.parse.urlencode(next_params)}"
+
+    prev_page = None
+    if offset > 0:
+        prev_offset = max(0, offset - limit)
+        prev_params = {**query_params, "limit": limit, "offset": prev_offset}
+        prev_page = f"{base_url}?{urllib.parse.urlencode(prev_params)}"
+        
+    result["next_page"] = next_page
+    result["prev_page"] = prev_page
+    return result
 
 
 @router.get("/books/{book_id}", response_model=BookResponse)

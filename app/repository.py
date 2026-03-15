@@ -39,20 +39,9 @@ class Repository:
         total_result = await self.session.execute(count_query)
         total_count = total_result.scalar_one()
 
-        id_query = query.with_only_columns(Book.id).offset(offset).limit(limit)
-        id_result = await self.session.execute(id_query)
-        book_ids = id_result.scalars().all()
-
-        if not book_ids:
-            return [], total_count
-
-        full_query = select(Book).where(Book.id.in_(book_ids))
-        if sort_by == "title":
-            full_query = full_query.order_by(order_func)
-        elif sort_by == "year_published":
-            full_query = full_query.order_by(order_func)
-            
-        result = await self.session.execute(full_query)
+        query = query.offset(offset).limit(limit)
+        result = await self.session.execute(query)
+        
         return list(result.scalars().all()), total_count
 
     async def get_by_id(self, book_id: uuid.UUID) -> Optional[Book]:

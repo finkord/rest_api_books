@@ -1,5 +1,4 @@
 import uuid
-import urllib.parse
 from typing import List
 from fastapi import HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
@@ -40,34 +39,11 @@ class BookService:
             limit=limit,
             offset=offset
         )
-        
-        # Build base URL to append query parameters easily
-        base_url = "/api/books"
-        
-        base_params = {}
-        if status: base_params["status"] = status
-        if author: base_params["author"] = author
-        if sort_by: base_params["sort_by"] = sort_by
-        base_params["sort_order"] = sort_order
-        
-        next_page = None
-        if offset + limit < total:
-            next_params = {**base_params, "limit": limit, "offset": offset + limit}
-            next_page = f"{base_url}?{urllib.parse.urlencode(next_params)}"
-
-        prev_page = None
-        if offset > 0:
-            prev_offset = max(0, offset - limit)
-            prev_params = {**base_params, "limit": limit, "offset": prev_offset}
-            prev_page = f"{base_url}?{urllib.parse.urlencode(prev_params)}"
-            
         return {
             "items": items,
             "total": total,
             "limit": limit,
-            "offset": offset,
-            "next_page": next_page,
-            "prev_page": prev_page
+            "offset": offset
         }
 
     async def get_book(self, book_id: uuid.UUID) -> Book:
@@ -142,16 +118,20 @@ class AuthService:
         if not db_session:
             raise credentials_exception
             
+        is_expired = False
         try:
             payload = verify_token_type(request.refresh_token, "refresh")
             user_id_str: str = payload.get("sub")
             if user_id_str is None:
                 raise credentials_exception
         except ExpiredTokenError:
-            await self.session_repository.delete_by_token(request.refresh_token)
-            raise HTTPException(status_code=401, detail="Refresh token expired")
+            is_expired = True
         except (InvalidTokenError, ValueError):
             raise credentials_exception
+            
+        if is_expired:
+            await self.session_repository.delete_by_token(request.refresh_token)
+            raise HTTPException(status_code=401, detail="Refresh token expired")
             
         user = await self.repository.get_by_id(user_id=uuid.UUID(user_id_str))
         if user is None:
