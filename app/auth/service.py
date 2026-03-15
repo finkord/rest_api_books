@@ -5,7 +5,6 @@ from fastapi.security import OAuth2PasswordRequestForm
 from app.auth.models import User
 from app.auth.schemas import UserCreate, RefreshTokenRequest, Token
 from app.auth.repository import UserRepository
-from app.exceptions import InvalidTokenError, ExpiredTokenError
 from app.core.security import (
     verify_password,
     get_password_hash,
@@ -47,25 +46,15 @@ class AuthService:
         return Token(access_token=access_token, refresh_token=refresh_token, token_type="bearer")
 
     async def refresh_token(self, request: RefreshTokenRequest) -> Token:
-        credentials_exception = HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Could not validate credentials",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-        
-        try:
-            payload = verify_token_type(request.refresh_token, "refresh")
-            user_id_str: str = payload.get("sub")
-            if user_id_str is None:
-                raise credentials_exception
-        except ExpiredTokenError:
-            raise HTTPException(status_code=401, detail="Refresh token expired")
-        except (InvalidTokenError, ValueError):
-            raise credentials_exception
+        user_id = verify_token_type(request.refresh_token, "refresh")
             
-        user = await self.repository.get_by_id(user_id=uuid.UUID(user_id_str))
+        user = await self.repository.get_by_id(user_id=user_id)
         if user is None:
-            raise credentials_exception
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Could not validate credentials",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
             
         access_token = create_access_token(data={"sub": str(user.id)})
         new_refresh_token = create_refresh_token(data={"sub": str(user.id)})

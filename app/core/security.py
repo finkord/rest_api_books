@@ -8,7 +8,7 @@ from fastapi.security import OAuth2PasswordBearer
 import jwt
 import bcrypt
 
-from app.exceptions import InvalidTokenError, ExpiredTokenError
+
 
 SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key-for-dev")
 ALGORITHM = os.getenv("ALGORITHM", "HS256")
@@ -46,13 +46,26 @@ def create_refresh_token(data: dict):
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
-def verify_token_type(token: str, expected_type: str) -> dict:
+def verify_token_type(token: str, expected_type: str) -> uuid.UUID:
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         if payload.get("type") != expected_type:
-            raise InvalidTokenError("Invalid token type")
-        return payload
+            raise credentials_exception
+            
+        user_id_str = payload.get("sub")
+        if user_id_str is None:
+            raise credentials_exception
+            
+        return uuid.UUID(user_id_str)
     except jwt.ExpiredSignatureError:
-        raise ExpiredTokenError("Token has expired")
-    except jwt.InvalidTokenError:
-        raise InvalidTokenError("Invalid token")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token has expired"
+        )
+    except (jwt.InvalidTokenError, ValueError):
+        raise credentials_exception

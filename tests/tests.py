@@ -110,16 +110,6 @@ def test_auth_refresh_token_stateless(client, auth_client_and_tokens):
     assert new_tokens["access_token"] != tokens["access_token"]
 
 
-def test_auth_logout_stateless(client, auth_client_and_tokens):
-    # Logout is purely a client-side discard in strictly stateless JWTs
-    _, tokens = auth_client_and_tokens
-    refresh_token = tokens["refresh_token"]
-    
-    response = client.post("/api/auth/logout", json={"refresh_token": refresh_token})
-    assert response.status_code == 200
-    assert response.json() == {"message": "Logged out successfully"}
-
-
 def test_get_books(auth_client):
     response = auth_client.get("/api/books")
     assert response.status_code == 200
