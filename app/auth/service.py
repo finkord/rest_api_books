@@ -1,13 +1,13 @@
 import uuid
-from typing import List
 from fastapi import HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
+from datetime import datetime, timezone, timedelta
 
-from app.models import Book, User, RefreshSession
-from app.schemas import BookRequest, UserCreate, RefreshTokenRequest, BooksPageResult, MessageResponse, Token
-from app.repository import Repository, UserRepository, RefreshSessionRepository
-from app.exceptions import NotFoundError, InvalidTokenError, ExpiredTokenError
-from app.security import (
+from app.auth.models import User, RefreshSession
+from app.auth.schemas import UserCreate, RefreshTokenRequest, Token, MessageResponse
+from app.auth.repository import UserRepository, RefreshSessionRepository
+from app.exceptions import InvalidTokenError, ExpiredTokenError
+from app.core.security import (
     verify_password,
     get_password_hash,
     create_access_token,
@@ -15,59 +15,6 @@ from app.security import (
     verify_token_type,
     REFRESH_TOKEN_EXPIRE_DAYS
 )
-from datetime import datetime, timezone, timedelta
-
-
-class BookService:
-    def __init__(self, repository: Repository):
-        self.repository = repository
-
-    async def get_books(
-        self,
-        status: str | None = None,
-        author: str | None = None,
-        sort_by: str | None = None,
-        sort_order: str = "asc",
-        limit: int = 10,
-        offset: int = 0
-    ) -> BooksPageResult:
-        items, total = await self.repository.get_all(
-            status=status,
-            author=author,
-            sort_by=sort_by,
-            sort_order=sort_order,
-            limit=limit,
-            offset=offset
-        )
-        return BooksPageResult(
-            items=items,
-            total=total,
-            limit=limit,
-            offset=offset
-        )
-
-    async def get_book(self, book_id: uuid.UUID) -> Book:
-        book = await self.repository.get_by_id(book_id)
-        if not book:
-            raise NotFoundError("Book not found")
-        return book
-
-    async def create_book(self, book_request: BookRequest) -> Book:
-        book = Book(
-            title=book_request.title,
-            author=book_request.author,
-            description=book_request.description,
-            status=book_request.status,
-            year_published=book_request.year_published,
-        )
-        return await self.repository.create(book)
-
-    async def delete_book(self, book_id: uuid.UUID) -> MessageResponse:
-        deleted = await self.repository.delete(book_id)
-        if not deleted:
-            raise NotFoundError("Book not found")
-        return MessageResponse(message="Book deleted")
-
 
 class AuthService:
     def __init__(self, repository: UserRepository, session_repository: RefreshSessionRepository):

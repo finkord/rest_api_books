@@ -4,9 +4,9 @@ from fastapi import FastAPI, Request
 from fastapi.responses import RedirectResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import router
-from app.auth import router as auth_router
-from app.models import engine
+from app.books.router import router as books_router
+from app.auth.router import router as auth_router
+from app.core.database import engine
 from app.exceptions import NotFoundError
 
 
@@ -35,7 +35,11 @@ async def not_found_error_handler(request: Request, exc: NotFoundError):
     )
 
 app.include_router(auth_router)
-app.include_router(router)
+app.include_router(books_router)
+
+@app.get("/api/health")
+async def health():
+    return {"status": "ok"}
 
 @app.get("/", include_in_schema=False)
 def root():

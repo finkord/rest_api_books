@@ -17,6 +17,8 @@ COPY ./alembic /code/alembic
 COPY ./alembic.ini /code/alembic.ini
 COPY ./pyproject.toml /code/pyproject.toml
 
-# Command to run the application using the FastAPI CLI or Uvicorn directly
-# Use the exec form of CMD for proper signal handling
-CMD ["fastapi", "run", "app/main.py"]
+# Ensure Python can find the 'app' module
+ENV PYTHONPATH=/code
+
+# Command to run the application using Uvicorn
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

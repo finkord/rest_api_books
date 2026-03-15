@@ -1,8 +1,8 @@
 import asyncio
 import os
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
-from app.models import User
-from app.security import get_password_hash
+from app.auth.models import User
+from app.core.security import get_password_hash
 
 # Use the provided PostgreSQL URL
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql+asyncpg://admin:admin@postgres:5432/booksdb")

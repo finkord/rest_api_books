@@ -2,7 +2,6 @@ from pydantic import BaseModel, Field, field_validator
 import uuid
 from datetime import datetime
 
-
 class BookRequest(BaseModel):
     title: str = Field(min_length=2, max_length=100)
     author: str = Field(min_length=2, max_length=100)
@@ -51,6 +50,8 @@ class BookResponse(BaseModel):
     description: str
     status: str
     year_published: int
+    
+    model_config = {"from_attributes": True}
 
 
 class PaginatedBookResponse(BaseModel):
@@ -61,27 +62,8 @@ class PaginatedBookResponse(BaseModel):
     next_page: str | None = None
     prev_page: str | None = None
     
-class UserCreate(BaseModel):
-    username: str = Field(min_length=3, max_length=50)
-    password: str = Field(min_length=6, max_length=128)
-
-class UserResponse(BaseModel):
-    id: uuid.UUID
-    username: str
-
-class Token(BaseModel):
-    access_token: str
-    refresh_token: str
-    token_type: str
-
-class RefreshTokenRequest(BaseModel):
-    refresh_token: str
-
 class BooksPageResult(BaseModel):
     items: list[BookResponse]
     total: int
     limit: int
     offset: int
-
-class MessageResponse(BaseModel):
-    message: str

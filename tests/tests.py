@@ -8,7 +8,8 @@ from sqlalchemy import text
 os.environ["DATABASE_URL"] = "sqlite+aiosqlite:///./test.db"
 
 from app.main import app
-from app.models import Base, engine, async_session, Book
+from app.core.database import Base, engine, async_session
+from app.books.models import Book
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -193,7 +194,7 @@ def test_get_books_pagination(auth_client):
     auth_client.post("/api/books", json=new_book)
 
     # First page: limit 1, offset 0
-    response1 = auth_client.get("/api/books?limit=1&offset=0")
+    response1 = auth_client.get("/api/books?limit=1&offset=0&sort_by=title&sort_order=asc")
     assert response1.status_code == 200
     data1 = response1.json()
     assert len(data1["items"]) == 1
@@ -202,7 +203,7 @@ def test_get_books_pagination(auth_client):
     assert data1["next_page"] is not None
 
     # Second page: limit 1, offset 1
-    response2 = auth_client.get("/api/books?limit=1&offset=1")
+    response2 = auth_client.get("/api/books?limit=1&offset=1&sort_by=title&sort_order=asc")
     assert response2.status_code == 200
     data2 = response2.json()
     assert len(data2["items"]) == 1

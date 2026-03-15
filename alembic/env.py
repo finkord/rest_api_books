@@ -22,7 +22,9 @@ import sys
 # Add the root directory of the project to the Python path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from app.models import Base
+from app.core.database import Base
+import app.auth.models
+import app.books.models
 
 # add your model's MetaData object here
 # for 'autogenerate' support
