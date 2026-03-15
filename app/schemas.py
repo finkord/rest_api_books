@@ -76,3 +76,12 @@ class Token(BaseModel):
 
 class RefreshTokenRequest(BaseModel):
     refresh_token: str
+
+class BooksPageResult(BaseModel):
+    items: list[BookResponse]
+    total: int
+    limit: int
+    offset: int
+
+class MessageResponse(BaseModel):
+    message: str

@@ -4,7 +4,7 @@ from fastapi import HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 
 from app.models import Book, User, RefreshSession
-from app.schemas import BookRequest, UserCreate, RefreshTokenRequest
+from app.schemas import BookRequest, UserCreate, RefreshTokenRequest, BooksPageResult, MessageResponse, Token
 from app.repository import Repository, UserRepository, RefreshSessionRepository
 from app.exceptions import NotFoundError, InvalidTokenError, ExpiredTokenError
 from app.security import (
@@ -30,7 +30,7 @@ class BookService:
         sort_order: str = "asc",
         limit: int = 10,
         offset: int = 0
-    ) -> dict:
+    ) -> BooksPageResult:
         items, total = await self.repository.get_all(
             status=status,
             author=author,
@@ -39,12 +39,12 @@ class BookService:
             limit=limit,
             offset=offset
         )
-        return {
-            "items": items,
-            "total": total,
-            "limit": limit,
-            "offset": offset
-        }
+        return BooksPageResult(
+            items=items,
+            total=total,
+            limit=limit,
+            offset=offset
+        )
 
     async def get_book(self, book_id: uuid.UUID) -> Book:
         book = await self.repository.get_by_id(book_id)
@@ -62,11 +62,11 @@ class BookService:
         )
         return await self.repository.create(book)
 
-    async def delete_book(self, book_id: uuid.UUID) -> dict:
+    async def delete_book(self, book_id: uuid.UUID) -> MessageResponse:
         deleted = await self.repository.delete(book_id)
         if not deleted:
             raise NotFoundError("Book not found")
-        return {"message": "Book deleted"}
+        return MessageResponse(message="Book deleted")
 
 
 class AuthService:
@@ -86,7 +86,7 @@ class AuthService:
         db_user = User(username=user.username, hashed_password=hashed_password)
         return await self.repository.create(db_user)
 
-    async def login(self, form_data: OAuth2PasswordRequestForm) -> dict:
+    async def login(self, form_data: OAuth2PasswordRequestForm) -> Token:
         user = await self.repository.get_by_username(form_data.username)
         if not user or not await verify_password(form_data.password, user.hashed_password):
             raise HTTPException(
@@ -105,9 +105,9 @@ class AuthService:
             expires_at=expires_at
         ))
         
-        return {"access_token": access_token, "refresh_token": refresh_token, "token_type": "bearer"}
+        return Token(access_token=access_token, refresh_token=refresh_token, token_type="bearer")
 
-    async def refresh_token(self, request: RefreshTokenRequest) -> dict:
+    async def refresh_token(self, request: RefreshTokenRequest) -> Token:
         credentials_exception = HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Could not validate credentials",
@@ -149,10 +149,10 @@ class AuthService:
             expires_at=expires_at
         ))
         
-        return {"access_token": access_token, "refresh_token": new_refresh_token, "token_type": "bearer"}
+        return Token(access_token=access_token, refresh_token=new_refresh_token, token_type="bearer")
 
-    async def logout(self, request: RefreshTokenRequest) -> dict:
+    async def logout(self, request: RefreshTokenRequest) -> MessageResponse:
         deleted = await self.session_repository.delete_by_token(request.refresh_token)
         if not deleted:
             raise HTTPException(status_code=401, detail="Invalid refresh token")
-        return {"message": "Logged out successfully"}
+        return MessageResponse(message="Logged out successfully")

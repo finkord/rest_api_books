@@ -43,7 +43,7 @@ async def get_books(
         offset=offset
     )
     
-    total = result["total"]
+    total = result.total
     
     base_url = str(request.url.replace(query=""))
     query_params = dict(request.query_params)
@@ -59,9 +59,14 @@ async def get_books(
         prev_params = {**query_params, "limit": limit, "offset": prev_offset}
         prev_page = f"{base_url}?{urllib.parse.urlencode(prev_params)}"
         
-    result["next_page"] = next_page
-    result["prev_page"] = prev_page
-    return result
+    return PaginatedBookResponse(
+        items=result.items,
+        total=result.total,
+        limit=result.limit,
+        offset=result.offset,
+        next_page=next_page,
+        prev_page=prev_page
+    )
 
 
 @router.get("/books/{book_id}", response_model=BookResponse)
