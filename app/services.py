@@ -4,9 +4,9 @@ from typing import List
 from fastapi import HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 
-from app.models import Book, User
+from app.models import Book, User, RefreshSession
 from app.schemas import BookRequest, UserCreate, RefreshTokenRequest
-from app.repository import Repository, UserRepository
+from app.repository import Repository, UserRepository, RefreshSessionRepository
 from app.exceptions import NotFoundError, InvalidTokenError, ExpiredTokenError
 from app.security import (
     verify_password,
@@ -14,7 +14,9 @@ from app.security import (
     create_access_token,
     create_refresh_token,
     verify_token_type,
+    REFRESH_TOKEN_EXPIRE_DAYS
 )
+from datetime import datetime, timezone, timedelta
 
 
 class BookService:
@@ -92,8 +94,9 @@ class BookService:
 
 
 class AuthService:
-    def __init__(self, repository: UserRepository):
+    def __init__(self, repository: UserRepository, session_repository: RefreshSessionRepository):
         self.repository = repository
+        self.session_repository = session_repository
 
     async def register(self, user: UserCreate) -> User:
         existing_user = await self.repository.get_by_username(user.username)
@@ -116,8 +119,15 @@ class AuthService:
                 headers={"WWW-Authenticate": "Bearer"},
             )
         
-        access_token = create_access_token(data={"sub": user.username})
-        refresh_token = create_refresh_token(data={"sub": user.username})
+        access_token = create_access_token(data={"sub": str(user.id)})
+        refresh_token = create_refresh_token(data={"sub": str(user.id)})
+        
+        expires_at = datetime.now(timezone.utc) + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
+        await self.session_repository.create(RefreshSession(
+            refresh_token=refresh_token,
+            user_id=user.id,
+            expires_at=expires_at
+        ))
         
         return {"access_token": access_token, "refresh_token": refresh_token, "token_type": "bearer"}
 
@@ -128,21 +138,41 @@ class AuthService:
             headers={"WWW-Authenticate": "Bearer"},
         )
         
-        try:
-            payload = verify_token_type(request.refresh_token, "refresh")
-            username: str = payload.get("sub")
-            if username is None:
-                raise credentials_exception
-        except ExpiredTokenError:
-            raise HTTPException(status_code=401, detail="Refresh token expired")
-        except InvalidTokenError:
+        db_session = await self.session_repository.get_by_token(request.refresh_token)
+        if not db_session:
             raise credentials_exception
             
-        user = await self.repository.get_by_username(username=username)
+        try:
+            payload = verify_token_type(request.refresh_token, "refresh")
+            user_id_str: str = payload.get("sub")
+            if user_id_str is None:
+                raise credentials_exception
+        except ExpiredTokenError:
+            await self.session_repository.delete_by_token(request.refresh_token)
+            raise HTTPException(status_code=401, detail="Refresh token expired")
+        except (InvalidTokenError, ValueError):
+            raise credentials_exception
+            
+        user = await self.repository.get_by_id(user_id=uuid.UUID(user_id_str))
         if user is None:
             raise credentials_exception
             
-        access_token = create_access_token(data={"sub": user.username})
-        new_refresh_token = create_refresh_token(data={"sub": user.username})
+        await self.session_repository.delete_by_token(request.refresh_token)
+            
+        access_token = create_access_token(data={"sub": str(user.id)})
+        new_refresh_token = create_refresh_token(data={"sub": str(user.id)})
+        
+        expires_at = datetime.now(timezone.utc) + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
+        await self.session_repository.create(RefreshSession(
+            refresh_token=new_refresh_token,
+            user_id=user.id,
+            expires_at=expires_at
+        ))
         
         return {"access_token": access_token, "refresh_token": new_refresh_token, "token_type": "bearer"}
+
+    async def logout(self, request: RefreshTokenRequest) -> dict:
+        deleted = await self.session_repository.delete_by_token(request.refresh_token)
+        if not deleted:
+            raise HTTPException(status_code=401, detail="Invalid refresh token")
+        return {"message": "Logged out successfully"}
