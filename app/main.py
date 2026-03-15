@@ -34,9 +34,9 @@ async def not_found_error_handler(request: Request, exc: NotFoundError):
         content={"detail": exc.detail},
     )
 
-router = APIRouter(prefix="/api", tags=["health"])
+router = APIRouter(prefix="/api", tags=["Health"])
 
-@router.get("/Health")
+@router.get("/health")
 async def health():
     return {"status": "ok"}
 
