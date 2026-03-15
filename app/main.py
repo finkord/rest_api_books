@@ -16,8 +16,10 @@ async def lifespan(app: FastAPI):
     # Dispose connection pool on shutdown
     await engine.dispose()
 
+from app.core.dependencies import RateLimitDependency
+from fastapi import Depends
 
-app = FastAPI(lifespan=lifespan)
+app = FastAPI(lifespan=lifespan, dependencies=[Depends(RateLimitDependency())])
 
 app.add_middleware(
     CORSMiddleware,

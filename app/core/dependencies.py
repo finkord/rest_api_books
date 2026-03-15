@@ -35,3 +35,37 @@ async def get_book_service(db: AsyncSession = Depends(get_db)):
     from app.books.repository import BookRepository
     from app.books.service import BookService
     return BookService(repository=BookRepository(db))
+
+from fastapi import Request
+from app.core.rate_limiter import RedisRateLimiter
+
+# Initialize a global limiter instance
+rate_limiter = RedisRateLimiter()
+
+class RateLimitDependency:
+    async def __call__(self, request: Request):
+        token = request.headers.get("Authorization")
+        user_id = None
+        
+        if token and token.startswith("Bearer "):
+            raw_token = token.split(" ")[1]
+            try:
+                user_id_uuid = verify_token_type(raw_token, "access")
+                user_id = str(user_id_uuid)
+            except HTTPException:
+                pass
+
+        if user_id:
+            key = f"ratelimit:user:{user_id}"
+            limit = 10
+        else:
+            host = request.client.host if request.client else "unknown"
+            key = f"ratelimit:ip:{host}"
+            limit = 2
+
+        allowed = await rate_limiter.check_allowance(key=key, limit=limit, window=60)
+        if not allowed:
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail="Too Many Requests"
+            )
