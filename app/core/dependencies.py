@@ -39,12 +39,9 @@ async def get_current_user(token: str = Depends(oauth2_scheme), session: AsyncSe
     return user
 
 async def get_auth_service(db: AsyncSession = Depends(get_db)):
-    from app.auth.repository import UserRepository, RefreshSessionRepository
+    from app.auth.repository import UserRepository
     from app.auth.service import AuthService
-    return AuthService(
-        repository=UserRepository(db),
-        session_repository=RefreshSessionRepository(db)
-    )
+    return AuthService(repository=UserRepository(db))
 
 async def get_book_service(db: AsyncSession = Depends(get_db)):
     from app.books.repository import BookRepository

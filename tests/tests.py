@@ -34,6 +34,7 @@ def reset_db_data():
     async def reset():
         async with async_session() as session:
             await session.execute(text("DELETE FROM books"))
+            await session.execute(text("DELETE FROM users"))
             await session.commit()
 
             book = Book(
@@ -56,18 +57,24 @@ def client():
 
 
 @pytest.fixture
-def auth_client(client):
+def auth_client_and_tokens(client):
     # Register a dev user
     user_data = {"username": "testuser", "password": "testpassword"}
-    response = client.post("/api/auth/register", json=user_data)
+    client.post("/api/auth/register", json=user_data)
     
     # Login to get token
     login_data = {"username": "testuser", "password": "testpassword"}
     token_response = client.post("/api/auth/login", data=login_data)
-    token = token_response.json()["access_token"]
+    tokens = token_response.json()
     
     # Create an authenticated client
-    client.headers.update({"Authorization": f"Bearer {token}"})
+    client.headers.update({"Authorization": f"Bearer {tokens['access_token']}"})
+    return client, tokens
+
+
+@pytest.fixture
+def auth_client(auth_client_and_tokens):
+    client, _ = auth_client_and_tokens
     return client
 
 
@@ -75,6 +82,42 @@ def test_health(client):
     response = client.get("/api/health")
     assert response.status_code == 200
     assert response.json() == {"status": "ok"}
+
+
+def test_auth_register_and_login(client):
+    user_data = {"username": "newuser", "password": "securepassword"}
+    reg_response = client.post("/api/auth/register", json=user_data)
+    assert reg_response.status_code == 201
+    
+    login_data = {"username": "newuser", "password": "securepassword"}
+    login_response = client.post("/api/auth/login", data=login_data)
+    assert login_response.status_code == 200
+    tokens = login_response.json()
+    assert "access_token" in tokens
+    assert "refresh_token" in tokens
+
+
+def test_auth_refresh_token_stateless(client, auth_client_and_tokens):
+    _, tokens = auth_client_and_tokens
+    refresh_token = tokens["refresh_token"]
+    
+    # Refreshing should work cleanly without DB state
+    response = client.post("/api/auth/refresh", json={"refresh_token": refresh_token})
+    assert response.status_code == 200
+    new_tokens = response.json()
+    assert "access_token" in new_tokens
+    assert "refresh_token" in new_tokens
+    assert new_tokens["access_token"] != tokens["access_token"]
+
+
+def test_auth_logout_stateless(client, auth_client_and_tokens):
+    # Logout is purely a client-side discard in strictly stateless JWTs
+    _, tokens = auth_client_and_tokens
+    refresh_token = tokens["refresh_token"]
+    
+    response = client.post("/api/auth/logout", json={"refresh_token": refresh_token})
+    assert response.status_code == 200
+    assert response.json() == {"message": "Logged out successfully"}
 
 
 def test_get_books(auth_client):
