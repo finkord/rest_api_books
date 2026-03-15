@@ -1,10 +1,9 @@
 import uuid
 from fastapi import HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
-from datetime import datetime, timezone, timedelta
 
 from app.auth.models import User
-from app.auth.schemas import UserCreate, RefreshTokenRequest, Token, MessageResponse
+from app.auth.schemas import UserCreate, RefreshTokenRequest, Token
 from app.auth.repository import UserRepository
 from app.exceptions import InvalidTokenError, ExpiredTokenError
 from app.core.security import (
@@ -73,7 +72,3 @@ class AuthService:
         
         return Token(access_token=access_token, refresh_token=new_refresh_token, token_type="bearer")
 
-    async def logout(self, request: RefreshTokenRequest) -> MessageResponse:
-        # With stateless JWTs, server-side logout is a no-op unless we implement a blacklist.
-        # The client should simply discard the token.
-        return MessageResponse(message="Logged out successfully")

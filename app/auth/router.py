@@ -18,7 +18,3 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends(), service: AuthS
 @router.post("/refresh", response_model=Token)
 async def refresh_token(request: RefreshTokenRequest, service: AuthService = Depends(get_auth_service)):
     return await service.refresh_token(request)
-
-@router.post("/logout", status_code=200, response_model=MessageResponse)
-async def logout(request: RefreshTokenRequest, service: AuthService = Depends(get_auth_service)):
-    return await service.logout(request)
