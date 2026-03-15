@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, Query, Request
 
 from app.auth.models import User
 from app.books.schemas import BookRequest, BookResponse, PaginatedBookResponse
-from app.core.dependencies import get_book_service, get_current_user
+from app.core.dependencies import get_book_service, get_current_user, rate_limit
 from app.core.utils import generate_pagination_links
 from app.books.service import BookService
 
@@ -22,6 +22,7 @@ async def get_books(
     service: BookService = Depends(get_book_service),
     current_user: User = Depends(get_current_user),
 ):
+    await rate_limit(request, user_id=str(current_user.id))
     result = await service.get_books(
         status=status,
         author=author,
@@ -49,15 +50,18 @@ async def get_books(
 
 
 @router.get("/{book_id}", response_model=BookResponse)
-async def get_book(book_id: uuid.UUID, service: BookService = Depends(get_book_service), current_user: User = Depends(get_current_user)):
+async def get_book(request: Request, book_id: uuid.UUID, service: BookService = Depends(get_book_service), current_user: User = Depends(get_current_user)):
+    await rate_limit(request, user_id=str(current_user.id))
     return await service.get_book(book_id)
 
 
 @router.post("", status_code=201, response_model=BookResponse)
-async def create_book(book: BookRequest, service: BookService = Depends(get_book_service), current_user: User = Depends(get_current_user)):
+async def create_book(request: Request, book: BookRequest, service: BookService = Depends(get_book_service), current_user: User = Depends(get_current_user)):
+    await rate_limit(request, user_id=str(current_user.id))
     return await service.create_book(book)
 
 
 @router.delete("/{book_id}")
-async def delete_book(book_id: uuid.UUID, service: BookService = Depends(get_book_service), current_user: User = Depends(get_current_user)):
+async def delete_book(request: Request, book_id: uuid.UUID, service: BookService = Depends(get_book_service), current_user: User = Depends(get_current_user)):
+    await rate_limit(request, user_id=str(current_user.id))
     return await service.delete_book(book_id)

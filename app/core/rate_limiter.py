@@ -36,8 +36,8 @@ class RedisRateLimiter:
             request_count = results[2]  # result of zcard
 
             if request_count > limit:
-                # We added the current request but shouldn't have, so we can ideally remove it or just let it expire.
-                # It's an extra element we added in step 2. The standard way is if count > limit, we return False.
+                # Limit exceeded, remove the request we just added to prevent endlessly punishing the user
+                await self.redis_client.zrem(key, now_ms)
                 return False
 
             return True

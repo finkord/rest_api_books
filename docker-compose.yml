@@ -2,11 +2,13 @@
 services:
 
   app:
+    build: .
     image: finkord/books-api:lab6_0fb59b1
     restart: unless-stopped
     ports:
       - "8000:8000"
     depends_on:
+      - redis
       - postgres
     env_file:
       - .env

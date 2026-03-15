@@ -119,6 +119,8 @@ python-multipart==0.0.22
     #   fastapi
 pyyaml==6.0.3
     # via uvicorn
+redis==7.3.0
+    # via rest-api-cnu (pyproject.toml)
 rich==14.3.3
     # via
     #   rich-toolkit

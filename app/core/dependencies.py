@@ -42,6 +42,39 @@ from app.core.rate_limiter import RedisRateLimiter
 # Initialize a global limiter instance
 rate_limiter = RedisRateLimiter()
 
+async def rate_limit(request: Request, user_id: str | None = None):
+    # Requirement: If token is provided but invalid, return 401 instead of falling back to IP limit.
+    if user_id is None:
+        token = request.headers.get("Authorization")
+        if token and token.startswith("Bearer "):
+            raw_token = token.split(" ")[1]
+            try:
+                user_id_uuid = verify_token_type(raw_token, "access")
+                user_id = str(user_id_uuid)
+            except HTTPException as e:
+                raise e
+
+    if user_id:
+        key = f"ratelimit:user:{user_id}"
+        limit = 10
+    else:
+        # Check for proxy headers first to get the real client IP
+        forwarded_for = request.headers.get("X-Forwarded-For")
+        if forwarded_for:
+            host = forwarded_for.split(",")[0].strip()
+        else:
+            real_ip = request.headers.get("X-Real-IP")
+            host = real_ip if real_ip else (request.client.host if request.client else "unknown")
+        key = f"ratelimit:ip:{host}"
+        limit = 2
+
+    allowed = await rate_limiter.check_allowance(key=key, limit=limit, window=60)
+    if not allowed:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Too Many Requests"
+        )
+
 class RateLimitDependency:
     async def __call__(self, request: Request):
         token = request.headers.get("Authorization")
@@ -52,20 +85,8 @@ class RateLimitDependency:
             try:
                 user_id_uuid = verify_token_type(raw_token, "access")
                 user_id = str(user_id_uuid)
-            except HTTPException:
-                pass
+            except HTTPException as e:
+                # Re-raise the exception to deny access strictly rather than falling back to IP limits
+                raise e
 
-        if user_id:
-            key = f"ratelimit:user:{user_id}"
-            limit = 10
-        else:
-            host = request.client.host if request.client else "unknown"
-            key = f"ratelimit:ip:{host}"
-            limit = 2
-
-        allowed = await rate_limiter.check_allowance(key=key, limit=limit, window=60)
-        if not allowed:
-            raise HTTPException(
-                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-                detail="Too Many Requests"
-            )
+        await rate_limit(request, user_id)
