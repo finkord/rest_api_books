@@ -41,3 +41,13 @@ async def get_db():
 Lifespan:
 
 Налаштуй ініціалізацію та закриття пулів (Postgres та Redis) у lifespan в main.py, використовуючи створену логіку з папки database.
+
+
+
+2. Порядок залежностей (Performance)
+Зараз service ініціалізується до того, як перевіряється current_user.
+
+Python
+service: BookService = Depends(get_book_service),
+current_user: User = Depends(get_current_user),
+Якщо токен невалідний, FastAPI спочатку створить підключення до БД для сервісу, а потім викине 401. Краще поставити current_user першим у списку аргументів.

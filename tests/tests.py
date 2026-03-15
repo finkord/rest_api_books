@@ -8,7 +8,7 @@ from sqlalchemy import text
 os.environ["DATABASE_URL"] = "sqlite+aiosqlite:///./test.db"
 
 from app.main import app
-from app.core.database import Base, engine, async_session
+from app.database.session import Base, engine, async_session
 from app.books.models import Book
 
 
