@@ -1,4 +1,3 @@
-import os
 import time
 import logging
 from typing import Optional
@@ -9,7 +8,8 @@ logger = logging.getLogger(__name__)
 class RedisRateLimiter:
     def __init__(self, redis_url: Optional[str] = None):
         if redis_url is None:
-            redis_url = os.getenv("REDIS_URL", "redis://redis:6379/0")
+            from app.core.config import settings
+            redis_url = settings.REDIS_URL
         self.redis_client = redis.from_url(redis_url, decode_responses=True)
 
     async def check_allowance(self, key: str, limit: int, window: int = 60) -> bool:

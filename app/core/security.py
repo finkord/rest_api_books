@@ -1,19 +1,18 @@
-import os
 import asyncio
 import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Optional
-from fastapi import HTTPException, status, Depends
+from fastapi import HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 import jwt
 import bcrypt
 
+from app.core.config import settings
 
-
-SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key-for-dev")
-ALGORITHM = os.getenv("ALGORITHM", "HS256")
-ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "15"))
-REFRESH_TOKEN_EXPIRE_DAYS = int(os.getenv("REFRESH_TOKEN_EXPIRE_DAYS", "3"))
+SECRET_KEY = settings.SECRET_KEY
+ALGORITHM = settings.ALGORITHM
+ACCESS_TOKEN_EXPIRE_MINUTES = settings.ACCESS_TOKEN_EXPIRE_MINUTES
+REFRESH_TOKEN_EXPIRE_DAYS = settings.REFRESH_TOKEN_EXPIRE_DAYS
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
 

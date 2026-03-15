@@ -1,7 +1,7 @@
 import uuid
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy import String
-from app.core.database import Base
+from app.database.session import Base
 
 class User(Base):
     __tablename__ = "users"

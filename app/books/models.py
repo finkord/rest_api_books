@@ -1,7 +1,7 @@
 import uuid
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy import String, Integer
-from app.core.database import Base
+from app.database.session import Base
 
 class Book(Base):
     __tablename__ = "books"
