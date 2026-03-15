@@ -1,6 +1,6 @@
 import urllib.parse
 from fastapi import Request
-from typing import Optional, Dict
+from typing import Optional
 
 def generate_pagination_links(request: Request, total: int, limit: int, offset: int) -> dict[str, Optional[str]]:
     """Helper utility for generating next and previous pagination links."""

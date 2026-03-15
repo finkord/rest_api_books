@@ -1,4 +1,3 @@
-import uuid
 from fastapi import HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 
@@ -10,8 +9,7 @@ from app.core.security import (
     get_password_hash,
     create_access_token,
     create_refresh_token,
-    verify_token_type,
-    REFRESH_TOKEN_EXPIRE_DAYS
+    verify_token_type
 )
 
 

@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.books.router import router as books_router
 from app.auth.router import router as auth_router
 from app.core.database import engine
-from app.exceptions import NotFoundError
+from app.core.exceptions import NotFoundError
 
 
 @asynccontextmanager

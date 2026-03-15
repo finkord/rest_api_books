@@ -5,7 +5,7 @@ from app.books.models import Book
 from app.books.schemas import BookRequest, BooksPageResult
 from app.auth.schemas import MessageResponse
 from app.books.repository import BookRepository
-from app.exceptions import NotFoundError
+from app.core.exceptions import NotFoundError
 
 class BookService:
     def __init__(self, repository: BookRepository):

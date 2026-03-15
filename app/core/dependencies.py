@@ -1,7 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
-import uuid
 
 from app.core.database import async_session
 from app.core.security import verify_token_type
