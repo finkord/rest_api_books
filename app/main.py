@@ -1,6 +1,6 @@
 from contextlib import asynccontextmanager
 import uvicorn
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, APIRouter
 from fastapi.responses import RedirectResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -34,12 +34,15 @@ async def not_found_error_handler(request: Request, exc: NotFoundError):
         content={"detail": exc.detail},
     )
 
-app.include_router(auth_router)
-app.include_router(books_router)
+router = APIRouter(prefix="/api", tags=["health"])
 
-@app.get("/api/health")
+@router.get("/Health")
 async def health():
     return {"status": "ok"}
+
+app.include_router(auth_router)
+app.include_router(books_router)
+app.include_router(router)
 
 @app.get("/", include_in_schema=False)
 def root():
