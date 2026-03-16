@@ -36,13 +36,35 @@ def mock_redis():
     mock = AsyncMock()
     mock.exists.return_value = 0
     mock.setex = AsyncMock()
+    
+    # Mock for Pipeline
+    class MockPipeline:
+        def __init__(self):
+            # Default results for sliding window: [zremrange, zadd, zcard, pexpire]
+            self.results = [None, None, 1, None] 
+        async def __aenter__(self): return self
+        async def __aexit__(self, *args): pass
+        def zremrangebyscore(self, *args, **kwargs): return self
+        def zadd(self, *args, **kwargs): return self
+        def zcard(self, *args, **kwargs): return self
+        def pexpire(self, *args, **kwargs): return self
+        async def execute(self): return self.results
+        def set_count(self, val):
+            self.results[2] = val
+
+    mock.pipeline_instance = MockPipeline()
+    mock.pipeline = MagicMock(return_value=mock.pipeline_instance)
+    mock.zrem = AsyncMock()
+    
     return mock
 
 @pytest.fixture(autouse=True)
-def setup_redis_override(mock_redis):
-    app.dependency_overrides[get_redis] = lambda: mock_redis
+def setup_redis_override(mock_redis, mocker):
+    mocker.patch("redis.asyncio.from_url", return_value=mock_redis)
+    from app.database.redis import get_redis as actual_get_redis
+    app.dependency_overrides[actual_get_redis] = lambda: mock_redis
     yield
-    app.dependency_overrides.pop(get_redis, None)
+    app.dependency_overrides.pop(actual_get_redis, None)
 
 @pytest.fixture(autouse=True)
 def reset_db_data():
@@ -169,6 +191,45 @@ def test_refresh_token_rotation_blacklisting(client, auth_client_and_tokens, moc
     response = client.post("/api/auth/refresh", json={"refresh_token": refresh_token})
     assert response.status_code == 401
     assert response.json()["detail"] == "Token has been revoked"
+
+
+def test_rate_limit_anonymous(client, mock_redis):
+    # Anon limit is 2. 
+    # 1st request
+    mock_redis.pipeline_instance.set_count(1)
+    response = client.get("/api/health") # Health is NOT limited
+    assert response.status_code == 200
+    
+    # But books ARE limited.
+    # We need to mock auth to pass get_current_user but fail here? 
+    # Actually, rate_limit runs FIRST.
+    
+    # 1st book request
+    mock_redis.pipeline_instance.set_count(1)
+    response = client.get("/api/books")
+    # This will fail with 401 because it's anon and books require auth.
+    # But we want to see if it triggers 429 if we exceed limit.
+    
+    # 3rd request (exceeding limit of 2)
+    mock_redis.pipeline_instance.set_count(3)
+    response = client.get("/api/books")
+    assert response.status_code == 429
+    assert response.json()["detail"] == "Too Many Requests"
+
+
+def test_rate_limit_authenticated(client, auth_client_and_tokens, mock_redis):
+    client, tokens = auth_client_and_tokens
+    
+    # Auth limit is 10.
+    # 10th request
+    mock_redis.pipeline_instance.set_count(10)
+    response = client.get("/api/books")
+    assert response.status_code == 200
+    
+    # 11th request
+    mock_redis.pipeline_instance.set_count(11)
+    response = client.get("/api/books")
+    assert response.status_code == 429
 
 
 def test_get_books(auth_client):

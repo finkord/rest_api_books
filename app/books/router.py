@@ -6,7 +6,8 @@ from app.auth.models import User
 from app.books.schemas import BookRequest, BookResponse, PaginatedBookResponse
 from app.core.dependencies import (
     get_book_service,
-    get_current_user
+    get_current_user,
+    rate_limit
 )
 from app.core.utils import generate_pagination_links
 from app.books.service import BookService
@@ -14,7 +15,7 @@ from app.books.service import BookService
 router = APIRouter(
     prefix="/api/books",
     tags=["Books"],
-    dependencies=[Depends(get_current_user)]
+    dependencies=[Depends(rate_limit), Depends(get_current_user)]
 )
 
 @router.get("", response_model=PaginatedBookResponse)
