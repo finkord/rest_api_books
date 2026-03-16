@@ -51,3 +51,20 @@ Python
 service: BookService = Depends(get_book_service),
 current_user: User = Depends(get_current_user),
 Якщо токен невалідний, FastAPI спочатку створить підключення до БД для сервісу, а потім викине 401. Краще поставити current_user першим у списку аргументів.
+
+# ---------------------------------
+Необхідно додати ендпоінти для генерації access token, та захистити ендпоінти для books з використанням Token-based authentication. Обов'язково використати refresh token flow!
+
+Потрібно реалізувати rate limiter.
+Для авторизованих юзерів обмежимо до 10 запитів за хвилину.
+Для анонімних юзерів до 2.
+
+допрацювати оновлення токенів refresh tokens
+
+https://docs.secureauth.com/iam/refresh-token-flow
+
+видалити rate_limiter з проєкту, та написати його наново, як middleware\декоратор
+
+мені не подобається що якщо юзер не зареганий то він отримає unauthenticated, а не rate limit exceeded
+
+# ---------------------------------

@@ -7,17 +7,14 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.books.router import router as books_router
 from app.auth.router import router as auth_router
 from app.database.session import engine
-from app.database.redis import init_redis, close_redis
 from app.core.exceptions import NotFoundError
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Initialize connection pools on startup
-    init_redis()
     yield
     # Dispose connection pools on shutdown
-    await close_redis()
     await engine.dispose()
 
 app = FastAPI(lifespan=lifespan)
