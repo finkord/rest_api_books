@@ -9,6 +9,8 @@ os.environ["DATABASE_URL"] = "sqlite+aiosqlite:///./test.db"
 
 from app.main import app
 from app.database.session import Base, engine, async_session
+from app.database.redis import get_redis
+from unittest.mock import AsyncMock, MagicMock
 from app.books.models import Book
 
 
@@ -28,6 +30,19 @@ def setup_database():
 
     asyncio.run(cleanup_db())
 
+
+@pytest.fixture(autouse=True)
+def mock_redis():
+    mock = AsyncMock()
+    mock.exists.return_value = 0
+    mock.setex = AsyncMock()
+    return mock
+
+@pytest.fixture(autouse=True)
+def setup_redis_override(mock_redis):
+    app.dependency_overrides[get_redis] = lambda: mock_redis
+    yield
+    app.dependency_overrides.pop(get_redis, None)
 
 @pytest.fixture(autouse=True)
 def reset_db_data():
@@ -108,6 +123,52 @@ def test_auth_refresh_token_stateless(client, auth_client_and_tokens):
     assert "access_token" in new_tokens
     assert "refresh_token" in new_tokens
     assert new_tokens["access_token"] != tokens["access_token"]
+
+
+def test_logout_invalidates_token(client, auth_client_and_tokens, mock_redis):
+    client, tokens = auth_client_and_tokens
+    access_token = tokens["access_token"]
+    
+    # Mock blacklist check: token is NOT blacklisted yet
+    mock_redis.exists.return_value = 0
+    
+    # Logout
+    logout_response = client.post("/api/auth/logout")
+    assert logout_response.status_code == 204
+    
+    # Verify blacklist_token was called (setex)
+    assert mock_redis.setex.called
+    
+    # Mock blacklist check: token IS now blacklisted
+    mock_redis.exists.return_value = 1
+    
+    # Try to access books with the logout token
+    response = client.get("/api/books")
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Token has been revoked"
+
+
+def test_refresh_token_rotation_blacklisting(client, auth_client_and_tokens, mock_redis):
+    _, tokens = auth_client_and_tokens
+    refresh_token = tokens["refresh_token"]
+    
+    # Mock blacklist check: token is NOT blacklisted yet
+    mock_redis.exists.return_value = 0
+    
+    # Perform refresh
+    response = client.post("/api/auth/refresh", json={"refresh_token": refresh_token})
+    assert response.status_code == 200
+    
+    # Verify old refresh token was blacklisted
+    assert mock_redis.setex.called
+    
+    # Mock blacklist check: token IS now blacklisted
+    mock_redis.exists.return_value = 1
+    
+    # Try to use the OLD refresh token again
+    response = client.post("/api/auth/refresh", json={"refresh_token": refresh_token})
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Token has been revoked"
 
 
 def test_get_books(auth_client):

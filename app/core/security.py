@@ -6,6 +6,8 @@ from fastapi import HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 import jwt
 import bcrypt
+from redis.asyncio import Redis
+
 
 from app.core.config import settings
 
@@ -45,7 +47,13 @@ def create_refresh_token(data: dict):
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
-def verify_token_type(token: str, expected_type: str) -> uuid.UUID:
+async def blacklist_token(redis_client: Redis, jti: str, expires_in: int):
+    await redis_client.setex(f"blacklist:{jti}", expires_in, "1")
+
+async def is_token_blacklisted(redis_client: Redis, jti: str) -> bool:
+    return await redis_client.exists(f"blacklist:{jti}") > 0
+
+async def verify_token_type(token: str, expected_type: str, redis_client: Optional[Redis] = None) -> uuid.UUID:
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
@@ -57,8 +65,15 @@ def verify_token_type(token: str, expected_type: str) -> uuid.UUID:
             raise credentials_exception
             
         user_id_str = payload.get("sub")
-        if user_id_str is None:
+        jti = payload.get("jti")
+        if user_id_str is None or jti is None:
             raise credentials_exception
+            
+        if redis_client and await is_token_blacklisted(redis_client, jti):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Token has been revoked"
+            )
             
         return uuid.UUID(user_id_str)
     except jwt.ExpiredSignatureError:

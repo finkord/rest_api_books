@@ -68,3 +68,8 @@ https://docs.secureauth.com/iam/refresh-token-flow
 мені не подобається що якщо юзер не зареганий то він отримає unauthenticated, а не rate limit exceeded
 
 # ---------------------------------
+
+resfresh token flow now robust
+blacklisting now working!!!!!!!!!!!!!!!
+and we have logout option too
+but i need to make some tests and question is it good enough?
