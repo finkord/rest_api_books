@@ -1,5 +1,5 @@
 import uuid
-from typing import Literal
+from typing import Literal, List
 from fastapi import APIRouter, Depends, Query, Request
 
 from app.auth.models import User
@@ -63,13 +63,19 @@ async def get_book(
     return await service.get_book(book_id)
 
 
-@router.post("", status_code=201, response_model=BookResponse)
-async def create_book(
-    book: BookRequest,
+# @router.post("", status_code=201, response_model=BookResponse)
+# async def create_book(
+#     book: BookRequest,
+#     service: BookService = Depends(get_book_service)
+# ):
+#     return await service.create_book(book)
+
+@router.post("", status_code=201, response_model=List[BookResponse])
+async def create_books(
+    books: List[BookRequest], 
     service: BookService = Depends(get_book_service)
 ):
-    return await service.create_book(book)
-
+    return await service.create_books(books)
 
 @router.delete("/{book_id}")
 async def delete_book(

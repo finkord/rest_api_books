@@ -1,6 +1,7 @@
 import uuid
 from fastapi import HTTPException
 
+from typing import List
 from app.books.models import Book
 from app.books.schemas import BookRequest, BooksPageResult
 from app.auth.schemas import MessageResponse
@@ -50,6 +51,19 @@ class BookService:
             year_published=book_request.year_published,
         )
         return await self.repository.create(book)
+    
+    async def create_books(self, book_requests: List[BookRequest]) -> List[Book]:
+        books = [
+            Book(
+                title=req.title,
+                author=req.author,
+                description=req.description,
+                status=req.status,
+                year_published=req.year_published,
+            )
+            for req in book_requests
+        ]
+        return await self.repository.create_many(books)
 
     async def delete_book(self, book_id: uuid.UUID) -> MessageResponse:
         deleted = await self.repository.delete(book_id)
