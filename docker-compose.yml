@@ -1,0 +1,41 @@
+# name: books
+services:
+
+  app:
+    build: .
+    image: finkord/books-api:lab7_a0daed9
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    depends_on:
+      - redis
+      - postgres
+    env_file:
+      - .env
+    volumes:
+      - ./app:/code/app
+    networks:
+      - books_network
+
+  redis:
+    image: redis:latest
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    networks:
+      - books_network
+
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - ./data/psql:/var/lib/postgresql/data
+      - ./configs/psql/:/docker-entrypoint-initdb.d
+    networks:
+      - books_network
+
+networks:
+  books_network:
+    driver: bridge
