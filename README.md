@@ -5,7 +5,8 @@ A high-performance, asynchronous REST API for managing books, built with **FastA
 ## Features
 
 - **JWT Authentication**: Secure registration, login, and token refresh.
-- **Layered Architecture**: Decoupled API, Service, Repository, and Data layers.
+- **Rate Limiting & JWT Blacklisting**: Redis-backed sliding window rate limiter and token revocation.
+- **Modular Data-Driven Design**: Clean separation between Auth and Books domains.
 - **Database Migrations**: Integrated Alembic for robust schema management.
 - **Limit-Offset Pagination**: Optimized queries using the **Deferred Joins** pattern.
 - **Unified Error Handling**: Global exception handling with custom domain exceptions.
@@ -15,17 +16,18 @@ A high-performance, asynchronous REST API for managing books, built with **FastA
 
 ## Project Architecture
 
-- **API Layer (`app/api.py`, `app/auth.py`)**: Endpoints, request parsing, and response formatting.
-- **Service Layer (`app/services.py`)**: Business logic and domain rules.
-- **Repository Layer (`app/repository.py`)**: Database interaction and complex query logic.
-- **Models/Schemas (`app/models.py`, `app/schemas.py`)**: SQLAlchemy models and Pydantic validation schemas.
-- **Security (`app/security.py`)**: Password hashing (Bcrypt) and JWT token operations.
+- **API Layer (`app/*/router.py`)**: Domain-specific endpoints, request parsing, and response formatting.
+- **Service Layer (`app/*/service.py`)**: Business logic, domain rules, and security checks.
+- **Repository Layer (`app/*/repository.py`)**: Database interaction and complex query logic.
+- **Models/Schemas (`app/*/models.py`, `app/*/schemas.py`)**: SQLAlchemy models and Pydantic validation schemas.
+- **Core (`app/core/`)**: Convergent utilities, security helpers, and global configuration.
+- **Database Context (`app/database/`)**: PostgreSQL and Redis connection management.
 
 ---
 
 ## Setup & Running
 
-The easiest way to run the API and its PostgreSQL database is using **Docker Compose**.
+The easiest way to run the API, PostgreSQL, and **Redis** is using **Docker Compose**.
 
 ### Using Docker Compose
 1. **Configure Environment**: Create a `.env` file (see `.env_example`).
@@ -83,7 +85,7 @@ When you modify `app/models.py`:
 ### Seed Users
 To add initial test users to the database:
 ```bash
-docker exec -it rest_api_cnu-app-1 env PYTHONPATH=. python app/seed_users.py
+docker exec -it rest_api_cnu-app-1 env PYTHONPATH=. python seed_users.py
 ```
 
 ### Dependency Management
@@ -94,7 +96,7 @@ uv pip compile pyproject.toml -o requirements
 
 ### Run Tests
 ```bash
-uv run pytest tests/tests.py -v
+uv run pytest tests/ -v
 ```
 
 ---
@@ -104,6 +106,7 @@ uv run pytest tests/tests.py -v
 | Variable | Description |
 | :--- | :--- |
 | `DATABASE_URL` | Asyncpg connection string |
+| `REDIS_URL` | Redis connection URL |
 | `DB_ECHO` | Enable SQL statement logging |
 | `SECRET_KEY` | Key for JWT signing |
 | `ACCESS_TOKEN_EXPIRE_MINUTES` | Access Token lifespan |
