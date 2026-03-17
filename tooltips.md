@@ -69,14 +69,14 @@ https://docs.secureauth.com/iam/refresh-token-flow
 
 # ---------------------------------
 
-resfresh token flow now robust
-blacklisting now working!!!!!!!!!!!!!!!
+resfresh token flow now robust ✅
+blacklisting now working!!!!!!!!!!!!!!! ✅
 and we have logout option too
 
 
 
 
-add abbility to a lot of books to be created at once
+add abbility to a lot of books to be created at once ✅
 
 but i need to make some tests and question is it good enough?
 
