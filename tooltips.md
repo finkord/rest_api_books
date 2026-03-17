@@ -83,3 +83,6 @@ but i need to make some tests and question is it good enough?
 Рознести тести по окремих файлах для rate limiter
 та інших штук
 # ---------------------------------
+
+Моменти, що потребують уваги
+Опціональність Refresh токена: У файлі router.py параметр refresh_request має значення None за замовчуванням. Якщо клієнт просто викличе POST /logout без тіла запиту, refresh_token не буде анульовано, і користувач зможе отримати новий access_token.
