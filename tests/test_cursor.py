@@ -1,5 +1,6 @@
 import os
 import pytest
+import uuid
 from httpx import AsyncClient, ASGITransport
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -199,3 +200,66 @@ async def test_empty_results(client, db_session):
     data = response.json()
     assert data["items"] == []
     assert data["next_cursor"] is None
+
+@pytest.mark.asyncio
+async def test_uuid_cursor_sorting(client, db_session):
+    """Verifies that UUIDs are compared correctly in the database query using min/max values."""
+    u_min = uuid.UUID("00000000-0000-0000-0000-000000000001")
+    u_max = uuid.UUID("ffffffff-ffff-ffff-ffff-ffffffffffff")
+    
+    await create_books(db_session, [
+        {"id": u_min, "title": "Min", "author": "A", "description": "D", "status": BookStatus.available, "year_published": 2000},
+        {"id": u_max, "title": "Max", "author": "A", "description": "D", "status": BookStatus.available, "year_published": 2000},
+    ])
+    
+    # Default sort by ID ASC: expect u_min then u_max
+    response = await client.get("/api/books?limit=1")
+    data = response.json()
+    assert data["items"][0]["id"] == str(u_min)
+    
+    # Use cursor to get next page
+    cursor = data["next_cursor"]
+    response = await client.get(f"/api/books?limit=1&cursor={cursor}")
+    data = response.json()
+    assert data["items"][0]["id"] == str(u_max)
+    assert data["next_cursor"] is None
+
+@pytest.mark.asyncio
+async def test_no_page_overlap(client, db_session):
+    """Explicitly verifies that no items overlap between pages by collecting all IDs."""
+    # Create 10 books with different titles to avoid easy sorting collisions
+    books_data = [
+        {"title": f"Book {i:02d}", "author": "A", "description": "D", "status": BookStatus.available, "year_published": 2000}
+        for i in range(10)
+    ]
+    await create_books(db_session, books_data)
+    
+    all_seen_ids = set()
+    cursor = None
+    total_pages = 0
+    
+    while True:
+        total_pages += 1
+        url = "/api/books?limit=3"
+        if cursor:
+            url += f"&cursor={cursor}"
+        
+        response = await client.get(url)
+        assert response.status_code == 200
+        data = response.json()
+        items = data["items"]
+        
+        if not items:
+            break
+            
+        for item in items:
+            item_id = item["id"]
+            assert item_id not in all_seen_ids, f"Duplicate ID {item_id} found on page {total_pages}"
+            all_seen_ids.add(item_id)
+            
+        cursor = data.get("next_cursor")
+        if not cursor:
+            break
+            
+    assert len(all_seen_ids) == 10, f"Expected 10 unique books, but found {len(all_seen_ids)}"
+    assert total_pages == 4 # (3, 3, 3, 1) or similar depending on sort
