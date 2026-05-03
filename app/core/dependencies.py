@@ -8,6 +8,7 @@ from app.core.security import verify_token_type, SECRET_KEY, ALGORITHM
 from app.core.rate_limiter import RedisRateLimiter
 import jwt
 from redis.asyncio import Redis
+from app.core.config import settings
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
 limiter = RedisRateLimiter()
@@ -26,7 +27,7 @@ async def rate_limit(request: Request, redis: Redis = Depends(get_redis)):
             
     if user_id:
         key = f"ratelimit:user:{user_id}"
-        limit = 10
+        limit = settings.RATE_LIMIT_AUTH_USER
     else:
         # Get IP (simplified, following user's original archived logic)
         forwarded_for = request.headers.get("X-Forwarded-For")
@@ -35,7 +36,7 @@ async def rate_limit(request: Request, redis: Redis = Depends(get_redis)):
         else:
             host = request.client.host if request.client else "unknown"
         key = f"ratelimit:ip:{host}"
-        limit = 2
+        limit = settings.RATE_LIMIT_GUEST_USER
         
     allowed = await limiter.check_allowance(key, limit, redis_client=redis)
     if not allowed:

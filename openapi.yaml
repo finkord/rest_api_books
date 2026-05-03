@@ -2,98 +2,193 @@ openapi: 3.0.3
 info:
   title: Library Management API
   version: 1.0.0
-  description: API specification for managing library books
+  description: Mock API for FastAPI Library Management
 paths:
-  /books:
+  /api/books:
     get:
-      summary: Retrieve a list of books
+      summary: Get paginated list of books
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [available, borrowed]
+        - name: author
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
       responses:
         '200':
-          description: A JSON array of books
+          description: Paginated response of books
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Book'
+                $ref: '#/components/schemas/PaginatedBookResponse'
               examples:
-                bookList:
-                  summary: Realistic list of books
+                paginatedBooks:
+                  summary: Realistic paginated list
                   value:
-                    - id: 1
-                      title: "The Great Gatsby"
-                      author: "F. Scott Fitzgerald"
-                      published_year: 1925
-                    - id: 2
-                      title: "1984"
-                      author: "George Orwell"
-                      published_year: 1949
+                    items:
+                      - id: "123e4567-e89b-12d3-a456-426614174000"
+                        title: "The Go Programming Language"
+                        author: "Alan A. A. Donovan"
+                        description: "An authoritative resource for any programmer who wants to learn Go."
+                        status: "available"
+                        year_published: 2015
+                      - id: "123e4567-e89b-12d3-a456-426614174001"
+                        title: "Clean Code"
+                        author: "Robert C. Martin"
+                        description: "A Handbook of Agile Software Craftsmanship."
+                        status: "borrowed"
+                        year_published: 2008
+                    total: 2
+                    limit: 10
+                    offset: 0
+                    next_page: null
+                    prev_page: null
     post:
-      summary: Create a new book
+      summary: Create multiple books
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/BookCreate'
+              type: array
+              items:
+                $ref: '#/components/schemas/BookRequest'
             examples:
-              newBookRequest:
-                summary: Example request to create a book
+              bulkCreateRequest:
+                summary: Request to create multiple books
                 value:
-                  title: "To Kill a Mockingbird"
-                  author: "Harper Lee"
-                  published_year: 1960
+                  - title: "The Pragmatic Programmer"
+                    author: "David Thomas"
+                    description: "Journey to mastery."
+                    status: "available"
+                    year_published: 1999
       responses:
         '201':
-          description: Book successfully created
+          description: Books successfully created
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Book'
+                type: array
+                items:
+                  $ref: '#/components/schemas/BookResponse'
               examples:
-                createdBook:
-                  summary: Realistic created book response
+                bulkCreateResponse:
+                  summary: Realistic created books response
                   value:
-                    id: 3
-                    title: "To Kill a Mockingbird"
-                    author: "Harper Lee"
-                    published_year: 1960
+                    - id: "123e4567-e89b-12d3-a456-426614174002"
+                      title: "The Pragmatic Programmer"
+                      author: "David Thomas"
+                      description: "Journey to mastery."
+                      status: "available"
+                      year_published: 1999
+
+  /api/books/{book_id}:
+    get:
+      summary: Get a specific book by ID
+      parameters:
+        - name: book_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: A single book
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookResponse'
+              examples:
+                singleBook:
+                  summary: Realistic single book
+                  value:
+                    id: "123e4567-e89b-12d3-a456-426614174000"
+                    title: "The Go Programming Language"
+                    author: "Alan A. A. Donovan"
+                    description: "An authoritative resource for any programmer who wants to learn Go."
+                    status: "available"
+                    year_published: 2015
 
 components:
   schemas:
-    Book:
+    BookRequest:
+      type: object
+      required:
+        - title
+        - author
+        - description
+        - status
+        - year_published
+      properties:
+        title:
+          type: string
+        author:
+          type: string
+        description:
+          type: string
+        status:
+          type: string
+          enum: [available, borrowed]
+        year_published:
+          type: integer
+    BookResponse:
       type: object
       required:
         - id
         - title
         - author
-        - published_year
+        - description
+        - status
+        - year_published
       properties:
         id:
-          type: integer
-          example: 1
+          type: string
+          format: uuid
         title:
           type: string
-          example: "The Great Gatsby"
         author:
           type: string
-          example: "F. Scott Fitzgerald"
-        published_year:
+        description:
+          type: string
+        status:
+          type: string
+        year_published:
           type: integer
-          example: 1925
-    BookCreate:
+    PaginatedBookResponse:
       type: object
       required:
-        - title
-        - author
-        - published_year
+        - items
+        - total
+        - limit
+        - offset
       properties:
-        title:
-          type: string
-          example: "To Kill a Mockingbird"
-        author:
-          type: string
-          example: "Harper Lee"
-        published_year:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/BookResponse'
+        total:
           type: integer
-          example: 1960
+        limit:
+          type: integer
+        offset:
+          type: integer
+        next_page:
+          type: string
+          nullable: true
+        prev_page:
+          type: string
+          nullable: true

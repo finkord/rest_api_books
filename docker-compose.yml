@@ -1,11 +1,59 @@
 services:
   mock-server:
     image: stoplight/prism:5
-    # Mount the local OpenAPI specification into the container
     volumes:
       - ./openapi.yaml:/openapi.yaml:ro
-    # Start the Prism mock server, binding to 0.0.0.0 so it is accessible outside the container
-    command: mock -h 0.0.0.0 -m false /openapi.yaml
-    # Expose port 4010 for API testing
+    command: mock -h 0.0.0.0 --multiprocess=false /openapi.yaml
     ports:
       - "4010:4010"
+
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    environment:
+      - BACKEND_URL=http://localhost:8000
+    depends_on:
+      - mock-server
+
+  app:
+    build: .
+    image: finkord/books-api:lab7_a0daed9
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    depends_on:
+      - redis
+      - postgres
+    env_file:
+      - .env
+    volumes:
+      - ./app:/code/app
+    networks:
+      - books_network
+
+  redis:
+    image: redis:latest
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    networks:
+      - books_network
+
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - ./data/psql:/var/lib/postgresql/data
+      - ./configs/psql/:/docker-entrypoint-initdb.d
+    networks:
+      - books_network
+
+networks:
+  books_network:
+    driver: bridge
