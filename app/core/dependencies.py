@@ -14,6 +14,9 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
 limiter = RedisRateLimiter()
 
 async def rate_limit(request: Request, redis: Redis = Depends(get_redis)):
+    if not settings.RATE_LIMITER_ENABLED:
+        return
+        
     # Try to get user_id from token without raising exception if missing/invalid
     user_id = None
     token = request.headers.get("Authorization")

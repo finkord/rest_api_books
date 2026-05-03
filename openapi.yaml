@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: Library Management API
-  version: 3.0.0
+  version: 4.0.0
   description: Mock API for FastAPI Library Management
 paths:
   /api/books:

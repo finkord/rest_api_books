@@ -11,8 +11,9 @@ class Settings(BaseSettings):
 
     REDIS_URL: str = "redis://redis:6379/0"
 
-    RATE_LIMIT_AUTH_USER: int = 1000
-    RATE_LIMIT_GUEST_USER: int = 200
+    RATE_LIMITER_ENABLED: bool = True
+    RATE_LIMIT_AUTH_USER: int = 100
+    RATE_LIMIT_GUEST_USER: int = 10
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra='ignore')
 

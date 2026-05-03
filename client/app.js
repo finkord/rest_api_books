@@ -122,6 +122,8 @@ async function fetchBooks() {
   const status = document.getElementById('filter-status').value;
   const sortBy = document.getElementById('filter-sort').value;
   const sortOrder = document.getElementById('filter-order').value;
+  const limitInput = document.getElementById('filter-limit');
+  if (limitInput) state.limit = parseInt(limitInput.value, 10);
 
   const params = new URLSearchParams({ limit: state.limit, offset: state.offset });
   if (author) params.append('author', author);
@@ -138,6 +140,12 @@ async function fetchBooks() {
     renderBooks();
     document.getElementById('prev-btn').disabled = !data.prev_page;
     document.getElementById('next-btn').disabled = !data.next_page;
+    const totalPages = Math.max(1, Math.ceil(data.total / state.limit));
+    const currentPage = Math.floor(state.offset / state.limit) + 1;
+    const pageInfo = document.getElementById('page-info');
+    if (pageInfo) {
+      pageInfo.textContent = `Page ${currentPage} of ${totalPages} (${data.total} total)`;
+    }
   } else {
     showToast('Failed to load books', true);
   }
