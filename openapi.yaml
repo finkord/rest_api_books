@@ -1,0 +1,99 @@
+openapi: 3.0.3
+info:
+  title: Library Management API
+  version: 1.0.0
+  description: API specification for managing library books
+paths:
+  /books:
+    get:
+      summary: Retrieve a list of books
+      responses:
+        '200':
+          description: A JSON array of books
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Book'
+              examples:
+                bookList:
+                  summary: Realistic list of books
+                  value:
+                    - id: 1
+                      title: "The Great Gatsby"
+                      author: "F. Scott Fitzgerald"
+                      published_year: 1925
+                    - id: 2
+                      title: "1984"
+                      author: "George Orwell"
+                      published_year: 1949
+    post:
+      summary: Create a new book
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BookCreate'
+            examples:
+              newBookRequest:
+                summary: Example request to create a book
+                value:
+                  title: "To Kill a Mockingbird"
+                  author: "Harper Lee"
+                  published_year: 1960
+      responses:
+        '201':
+          description: Book successfully created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Book'
+              examples:
+                createdBook:
+                  summary: Realistic created book response
+                  value:
+                    id: 3
+                    title: "To Kill a Mockingbird"
+                    author: "Harper Lee"
+                    published_year: 1960
+
+components:
+  schemas:
+    Book:
+      type: object
+      required:
+        - id
+        - title
+        - author
+        - published_year
+      properties:
+        id:
+          type: integer
+          example: 1
+        title:
+          type: string
+          example: "The Great Gatsby"
+        author:
+          type: string
+          example: "F. Scott Fitzgerald"
+        published_year:
+          type: integer
+          example: 1925
+    BookCreate:
+      type: object
+      required:
+        - title
+        - author
+        - published_year
+      properties:
+        title:
+          type: string
+          example: "To Kill a Mockingbird"
+        author:
+          type: string
+          example: "Harper Lee"
+        published_year:
+          type: integer
+          example: 1960

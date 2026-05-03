@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Library Dashboard</title>
+  <meta name="description" content="Manage your library books efficiently.">
+  <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+  <header>
+    <h1>Library Dashboard</h1>
+    <p class="subtitle">Mock API Client Interface</p>
+  </header>
+
+  <div class="container">
+    <!-- Books List Section -->
+    <main class="card">
+      <h2 class="section-title">Available Books</h2>
+      <div id="loaks-container" class="books-grid">
+        <!-- Books will be injected here -->
+      </div>
+    </main>
+
+    <!-- Add Book Section -->
+    <aside class="card">
+      <h2 class="section-title">Add New Book</h2>
+      <form id="add-book-form">
+        <div class="form-group">
+          <label for="title">Book Title</label>
+          <input type="text" ider" class="loader">
+        </div>
+        <div id="bood=" title" required placeholder="e.g. 1984">
+        </div>
+        <div class="form-group">
+          <label for="author">Author</label>
+          <input type="text" id="author" required placeholder="e.g. George Orwell">
+        </div>
+        <div class="form-group">
+          <label for="year">Published Year</label>
+          <input type="number" id="year" required placeholder="e.g. 1949">
+        </div>
+        <button type="submit" id="submit-btn">Create Book</button>
+      </form>
+    </aside>
+  </div>
+
+  <div id="toast" class="toast">Action successful!</div>
+
+  <script src="app.js"></script>
+</body>
+
+</html>
