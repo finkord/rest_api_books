@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: Library Management API
-  version: 1.0.0
+  version: 3.0.0
   description: Mock API for FastAPI Library Management
 paths:
   /api/books:
@@ -14,6 +14,14 @@ paths:
             type: string
             enum: [available, borrowed]
         - name: author
+          in: query
+          schema:
+            type: string
+        - name: sort_by
+          in: query
+          schema:
+            type: string
+        - name: sort_order
           in: query
           schema:
             type: string
@@ -122,9 +130,154 @@ paths:
                     description: "An authoritative resource for any programmer who wants to learn Go."
                     status: "available"
                     year_published: 2015
+    delete:
+      summary: Delete a book
+      parameters:
+        - name: book_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Successfully deleted
+          content:
+            application/json:
+              schema:
+                type: object
+              examples:
+                success:
+                  value: {}
+
+  /api/auth/register:
+    post:
+      summary: Register a new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserCreate'
+            examples:
+              newUser:
+                value:
+                  username: "testuser"
+                  password: "password123"
+      responses:
+        '201':
+          description: User registered successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+              examples:
+                createdUser:
+                  value:
+                    id: "123e4567-e89b-12d3-a456-426614174999"
+                    username: "testuser"
+
+  /api/auth/login:
+    post:
+      summary: Login
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                password:
+                  type: string
+      responses:
+        '200':
+          description: Successfully logged in
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Token'
+              examples:
+                tokenResponse:
+                  value:
+                    access_token: "mock-access-token"
+                    refresh_token: "mock-refresh-token"
+                    token_type: "bearer"
+
+  /api/auth/refresh:
+    post:
+      summary: Refresh token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshTokenRequest'
+      responses:
+        '200':
+          description: Successfully refreshed token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Token'
+              examples:
+                tokenResponse:
+                  value:
+                    access_token: "mock-access-token-new"
+                    refresh_token: "mock-refresh-token-new"
+                    token_type: "bearer"
+
+  /api/auth/logout:
+    post:
+      summary: Logout
+      responses:
+        '204':
+          description: Successfully logged out
 
 components:
   schemas:
+    UserCreate:
+      type: object
+      required:
+        - username
+        - password
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+    UserResponse:
+      type: object
+      required:
+        - id
+        - username
+      properties:
+        id:
+          type: string
+          format: uuid
+        username:
+          type: string
+    Token:
+      type: object
+      required:
+        - access_token
+        - refresh_token
+        - token_type
+      properties:
+        access_token:
+          type: string
+        refresh_token:
+          type: string
+        token_type:
+          type: string
+    RefreshTokenRequest:
+      type: object
+      required:
+        - refresh_token
+      properties:
+        refresh_token:
+          type: string
     BookRequest:
       type: object
       required:
