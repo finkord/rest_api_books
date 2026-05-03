@@ -1,26 +1,80 @@
+/* Modern Corporate UI Styles */
 body {
-  background-color: #55aaaa;
-  margin: 0;
-  padding: 0;
+    -webkit-font-smoothing: antialiased;
 }
 
-.field-row {
-  display: flex;
-  flex-direction: column;
-  margin-bottom: 10px;
+/* Book Card */
+.book-card {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 1rem;
+    padding: 1.5rem;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
 }
 
-.field-row label {
-  margin-bottom: 4px;
+html.dark .book-card {
+    background: #1e293b;
+    border-color: #334155;
 }
 
-select {
-  padding: 4px;
-  border: 2px solid #000;
-  background: #fff;
-  border-radius: 0;
+.book-card:hover {
+    transform: translateY(-4px);
+    border-color: #c7d2fe;
+    box-shadow: 0 12px 20px -8px rgba(0, 0, 0, 0.08);
 }
 
-input {
-  border-radius: 0 !important;
+html.dark .book-card:hover {
+    border-color: #6366f1;
+    box-shadow: 0 12px 20px -8px rgba(0, 0, 0, 0.5);
 }
+
+.status-badge {
+    display: inline-block;
+    padding: 0.25rem 0.625rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+}
+
+.status-available { background-color: #ecfdf5; color: #059669; }
+html.dark .status-available { background-color: rgba(5, 150, 105, 0.2); color: #34d399; }
+
+.status-borrowed { background-color: #fff7ed; color: #d97706; }
+html.dark .status-borrowed { background-color: rgba(217, 119, 6, 0.2); color: #fbbf24; }
+
+.delete-action {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    padding: 0.5rem;
+    border-radius: 0.5rem;
+    color: #94a3b8;
+    opacity: 0;
+    transition: all 0.2s;
+}
+
+html.dark .delete-action {
+    color: #64748b;
+}
+
+.book-card:hover .delete-action {
+    opacity: 1;
+}
+
+.delete-action:hover {
+    background-color: #fef2f2;
+    color: #ef4444;
+}
+
+html.dark .delete-action:hover {
+    background-color: rgba(239, 68, 68, 0.2);
+}
+
+/* Base custom resets not handled by Tailwind */
+input, select, textarea { transition: all 0.2s; }
+button { transition: all 0.2s; }
+button:active { transform: scale(0.98); }

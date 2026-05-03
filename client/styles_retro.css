@@ -1,0 +1,26 @@
+body {
+  background-color: #55aaaa;
+  margin: 0;
+  padding: 0;
+}
+
+.field-row {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 10px;
+}
+
+.field-row label {
+  margin-bottom: 4px;
+}
+
+select {
+  padding: 4px;
+  border: 2px solid #000;
+  background: #fff;
+  border-radius: 0;
+}
+
+input {
+  border-radius: 0 !important;
+}

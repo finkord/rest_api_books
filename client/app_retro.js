@@ -3,64 +3,46 @@ const BACKEND_URL = window.BACKEND_URL || 'http://127.0.0.1:4010';
 const ui = {
   authSection: document.getElementById('auth-section'),
   dashboardSection: document.getElementById('dashboard-section'),
-  navActions: document.getElementById('nav-actions'),
-  userDisplay: document.getElementById('user-display'),
   booksContainer: document.getElementById('books-container'),
   loader: document.getElementById('loader'),
   toast: document.getElementById('toast'),
-  toastMessage: document.getElementById('toast-message'),
-  toastIcon: document.getElementById('toast-icon')
+  toastMessage: document.getElementById('toast-message')
 };
 
 let state = {
   accessToken: localStorage.getItem('access_token'),
   refreshToken: localStorage.getItem('refresh_token'),
-  username: localStorage.getItem('username'),
   books: [],
-  limit: 12,
+  limit: 10,
   offset: 0
 };
 
 // Utils
 function showToast(message, isError = false) {
   ui.toastMessage.textContent = message;
-  ui.toastIcon.innerHTML = isError ? 
-    '<svg class="w-5 h-5 text-red-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path></svg>' :
-    '<svg class="w-5 h-5 text-emerald-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>';
-  
-  ui.toast.classList.remove('translate-y-20', 'opacity-0');
-  ui.toast.classList.add('translate-y-0', 'opacity-100');
-  
-  setTimeout(() => {
-    ui.toast.classList.remove('translate-y-0', 'opacity-100');
-    ui.toast.classList.add('translate-y-20', 'opacity-0');
-  }, 3000);
+  ui.toast.style.display = 'block';
+  setTimeout(() => ui.toast.style.display = 'none', 3000);
 }
 
 function updateView() {
   if (state.accessToken) {
-    ui.authSection.classList.add('hidden');
-    ui.dashboardSection.classList.remove('hidden');
-    ui.navActions.classList.remove('hidden');
-    ui.navActions.classList.add('flex');
-    ui.userDisplay.textContent = state.username || 'User';
+    ui.authSection.style.display = 'none';
+    ui.dashboardSection.style.display = 'block';
     fetchBooks();
   } else {
-    ui.authSection.classList.remove('hidden');
-    ui.dashboardSection.classList.add('hidden');
-    ui.navActions.classList.add('hidden');
-    ui.navActions.classList.remove('flex');
+    ui.authSection.style.display = 'block';
+    ui.dashboardSection.style.display = 'none';
   }
 }
 
-// API Fetch Wrapper
+// API Fetch Wrapper (handles tokens)
 async function fetchAPI(endpoint, options = {}) {
   if (!options.headers) options.headers = {};
   if (state.accessToken) {
     options.headers['Authorization'] = `Bearer ${state.accessToken}`;
   }
   let res = await fetch(`${BACKEND_URL}${endpoint}`, options);
-  
+
   if (res.status === 401 && state.refreshToken) {
     const refreshRes = await fetch(`${BACKEND_URL}/api/auth/refresh`, {
       method: 'POST',
@@ -87,7 +69,7 @@ async function login(username, password) {
   const formData = new URLSearchParams();
   formData.append('username', username);
   formData.append('password', password);
-  
+
   const res = await fetch(`${BACKEND_URL}/api/auth/login`, {
     method: 'POST',
     body: formData
@@ -96,14 +78,12 @@ async function login(username, password) {
     const data = await res.json();
     state.accessToken = data.access_token;
     state.refreshToken = data.refresh_token;
-    state.username = username;
     localStorage.setItem('access_token', state.accessToken);
     localStorage.setItem('refresh_token', state.refreshToken);
-    localStorage.setItem('username', username);
-    showToast('Signed in successfully');
+    showToast('Logged in successfully!');
     updateView();
   } else {
-    showToast('Invalid credentials', true);
+    showToast('Login failed', true);
   }
 }
 
@@ -114,7 +94,7 @@ async function register(username, password) {
     body: JSON.stringify({ username, password })
   });
   if (res.ok) {
-    showToast('Account created!');
+    showToast('Registered successfully! Logging in...');
     await login(username, password);
   } else {
     const err = await res.json();
@@ -128,25 +108,23 @@ async function logout() {
   }
   state.accessToken = null;
   state.refreshToken = null;
-  state.username = null;
   localStorage.removeItem('access_token');
   localStorage.removeItem('refresh_token');
-  localStorage.removeItem('username');
   updateView();
 }
 
 // Book Actions
 async function fetchBooks() {
-  ui.loader.classList.remove('hidden');
-  ui.booksContainer.classList.add('hidden');
-  
+  ui.loader.style.display = 'block';
+  ui.booksContainer.innerHTML = '';
+
   const author = document.getElementById('filter-author').value;
   const status = document.getElementById('filter-status').value;
   const sortBy = document.getElementById('filter-sort').value;
   const sortOrder = document.getElementById('filter-order').value;
   const limitInput = document.getElementById('filter-limit');
   if (limitInput) state.limit = parseInt(limitInput.value, 10);
-  
+
   const params = new URLSearchParams({ limit: state.limit, offset: state.offset });
   if (author) params.append('author', author);
   if (status) params.append('status', status);
@@ -154,67 +132,59 @@ async function fetchBooks() {
   if (sortOrder) params.append('sort_order', sortOrder);
 
   const res = await fetchAPI(`/api/books?${params.toString()}`);
-  ui.loader.classList.add('hidden');
-  ui.booksContainer.classList.remove('hidden');
-  ui.booksContainer.classList.add('grid');
-  
+  ui.loader.style.display = 'none';
+
   if (res.ok) {
     const data = await res.json();
     state.books = data.items || [];
     renderBooks();
     document.getElementById('prev-btn').disabled = !data.prev_page;
     document.getElementById('next-btn').disabled = !data.next_page;
-    
     const totalPages = Math.max(1, Math.ceil(data.total / state.limit));
     const currentPage = Math.floor(state.offset / state.limit) + 1;
     const pageInfo = document.getElementById('page-info');
     if (pageInfo) {
-      pageInfo.textContent = `Page ${currentPage} of ${totalPages}`;
+      pageInfo.textContent = `Page ${currentPage} of ${totalPages} (${data.total} total)`;
     }
   } else {
-    showToast('Could not load books', true);
+    showToast('Failed to load books', true);
   }
 }
 
 function renderBooks() {
   ui.booksContainer.innerHTML = '';
   if (state.books.length === 0) {
-    ui.booksContainer.innerHTML = `
-        <div class="col-span-full py-12 text-center">
-            <p class="text-slate-400 font-medium">No books found matching your filters.</p>
-        </div>`;
+    ui.booksContainer.innerHTML = '<p>No books found.</p>';
     return;
   }
   state.books.forEach((book) => {
     const el = document.createElement('div');
-    el.className = 'book-card';
+    el.className = 'window';
     el.innerHTML = `
-      <button class="delete-action" onclick="deleteBook('${book.id}')" title="Delete book">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-      </button>
-      <div class="mb-4">
-        <span class="status-badge status-${book.status}">${book.status}</span>
+      <div class="title-bar">
+        <button aria-label="Close" class="close" onclick="deleteBook('${book.id}')">x</button>
+        <h1 class="title">${book.title}</h1>
       </div>
-      <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-1 line-clamp-1">${book.title}</h3>
-      <p class="text-sm font-medium text-indigo-600 mb-3">${book.author}</p>
-      <p class="text-sm text-slate-500 line-clamp-2 mb-4 h-10">${book.description}</p>
-      <div class="flex items-center justify-between pt-4 border-t border-slate-100">
-        <span class="text-xs font-bold text-slate-400 uppercase tracking-widest">${book.year_published}</span>
-        <button class="text-xs font-bold text-indigo-600 hover:text-indigo-700">View Details →</button>
+      <div class="window-pane">
+        <p><strong>Author:</strong> ${book.author}</p>
+        <p><strong>Description:</strong> ${book.description}</p>
+        <p><strong>Year:</strong> ${book.year_published}</p>
+        <p><strong>Status:</strong> ${book.status}</p>
       </div>
     `;
     ui.booksContainer.appendChild(el);
   });
 }
 
+// Make deleteBook global so onclick works
 window.deleteBook = async function (id) {
-  if (!confirm("Are you sure you want to delete this book?")) return;
+  if (!confirm("Delete this book?")) return;
   const res = await fetchAPI(`/api/books/${id}`, { method: 'DELETE' });
   if (res.ok) {
-    showToast('Book removed from collection');
+    showToast('Book deleted');
     fetchBooks();
   } else {
-    showToast('Deletion failed', true);
+    showToast('Failed to delete', true);
   }
 }
 
@@ -236,10 +206,8 @@ document.getElementById('logout-btn').addEventListener('click', logout);
 document.getElementById('add-book-form').addEventListener('submit', async (e) => {
   e.preventDefault();
   const btn = document.getElementById('submit-btn');
-  const originalText = btn.textContent;
   btn.disabled = true;
-  btn.textContent = 'Saving...';
-  
+
   const payload = [{
     title: document.getElementById('title').value,
     author: document.getElementById('author').value,
@@ -247,22 +215,20 @@ document.getElementById('add-book-form').addEventListener('submit', async (e) =>
     status: document.getElementById('status').value,
     year_published: parseInt(document.getElementById('year').value, 10)
   }];
-  
+
   const res = await fetchAPI('/api/books', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload)
   });
-  
+
   btn.disabled = false;
-  btn.textContent = originalText;
-  
   if (res.ok) {
-    showToast('Book added successfully');
+    showToast('Book created!');
     document.getElementById('add-book-form').reset();
     fetchBooks();
   } else {
-    showToast('Error saving book', true);
+    showToast('Creation failed', true);
   }
 });
 
@@ -281,4 +247,5 @@ document.getElementById('next-btn').addEventListener('click', () => {
   fetchBooks();
 });
 
+// Initialize
 updateView();
