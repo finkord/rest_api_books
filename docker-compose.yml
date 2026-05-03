@@ -30,6 +30,8 @@ services:
       - postgres
     env_file:
       - .env
+    environment:
+      - RATE_LIMITER_ENABLED=False
     volumes:
       - ./app:/code/app
     networks:
@@ -51,6 +53,18 @@ services:
     volumes:
       - ./data/psql:/var/lib/postgresql/data
       - ./configs/psql/:/docker-entrypoint-initdb.d
+    networks:
+      - books_network
+
+  locust:
+    image: locustio/locust
+    ports:
+      - "8089:8089"
+    volumes:
+      - ./locustfile.py:/mnt/locust/locustfile.py
+    command: -f /mnt/locust/locustfile.py --host=http://app:8000
+    depends_on:
+      - app
     networks:
       - books_network
 
